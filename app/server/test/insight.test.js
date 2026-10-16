@@ -8,6 +8,8 @@ before(async () => {
   server = await startServer();
   owner = makeClient(server.baseUrl);
   await owner.post('/api/auth/signup', { businessName: 'Insight Test Co', email: 'insight@test.com', password: 'password123' });
+  const { run } = require('../db');
+  await run("UPDATE users SET plan = 'business', has_ever_paid = true WHERE email = ?", ['insight@test.com']);
 });
 
 after(async () => {
@@ -115,8 +117,6 @@ test('the report aggregates demographics, psychographics, and engagement correct
 test('a scorecard with profile capture off reports an empty, disabled audience block', async () => {
   // Same free-plan (1 scorecard) cap as api.test.js — this account already
   // owns one scorecard from an earlier test in this file.
-  const { run } = require('../db');
-  await run("UPDATE users SET plan = 'business', has_ever_paid = true WHERE email = ?", ['insight@test.com']);
   const created = await owner.post('/api/scorecards', { title: 'Plain Lead Form' });
   await owner.put(`/api/scorecards/${created.data.scorecard.id}`, {
     title: 'Plain Lead Form',

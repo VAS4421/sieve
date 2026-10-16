@@ -74,6 +74,8 @@ if (require.main === module) {
         console.log(`Sieve server running at http://localhost:${PORT}`);
         console.log(`  Marketing site:      http://localhost:${PORT}/index.html`);
         console.log(`  Sign up / dashboard: http://localhost:${PORT}/signup.html`);
+        const { startNudgeJob } = require('./nudge');
+        startNudgeJob();
       });
     })
     .catch((err) => {

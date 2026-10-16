@@ -31,6 +31,9 @@ async function resolveBrandName(scorecardRow) {
 // Returns null when the scorecard is available, or a user-facing reason.
 const FREE_PLAN_RESPONSE_LIMIT = 10;
 
+// Monthly response quotas by plan (subscription mode only).
+const RESPONSE_LIMITS = { free: 10, starter: 100, business: 500, pro: 1000, enterprise: Infinity };
+
 // One brand-neutral message for every gated reason below — a random visitor
 // never needs (or should see) *why* a scorecard stopped accepting responses
 // (out of credits, no card on file, past the free-plan limit) — that's not a
@@ -41,11 +44,12 @@ const GATED_MESSAGES = {
   subscriptionExpired: "This scorecard isn't accepting responses right now — please check back soon.",
   creditsExhausted: "This scorecard isn't accepting new responses right now — the owner is out of credits.",
   cplFailing: "This scorecard isn't accepting responses right now — please check back soon.",
+  monthlyQuotaExceeded: "This scorecard isn't accepting new responses right now — the monthly quota has been reached.",
 };
 
 async function billingGate(scorecardRow) {
   const owner = await get(
-    'SELECT billing_mode, credit_balance, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at, is_admin FROM users WHERE id = ?',
+    'SELECT billing_mode, credit_balance, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at, plan, monthly_responses_used, monthly_reset_at, is_admin FROM users WHERE id = ?',
     [scorecardRow.user_id]
   );
   if (!owner) return null;
@@ -72,6 +76,21 @@ async function billingGate(scorecardRow) {
   // exhausted billing mode instead of silently staying open forever.
   if (owner.billing_mode === 'subscription') {
     if (owner.plan_expires_at && new Date(owner.plan_expires_at) < new Date()) return GATED_MESSAGES.subscriptionExpired;
+
+    // Monthly response quota check for subscription plans.
+    const limit = RESPONSE_LIMITS[owner.plan] ?? RESPONSE_LIMITS.free;
+    if (limit !== Infinity) {
+      const now = new Date();
+      const resetAt = owner.monthly_reset_at ? new Date(owner.monthly_reset_at) : null;
+      // Reset counter if it has never been set or if more than 30 days have passed.
+      if (!resetAt || now - resetAt > 30 * 24 * 60 * 60 * 1000) {
+        await run('UPDATE users SET monthly_responses_used = 0, monthly_reset_at = now() WHERE id = ?', [scorecardRow.user_id]);
+        owner.monthly_responses_used = 0;
+      }
+      if (Number(owner.monthly_responses_used) >= limit) {
+        return GATED_MESSAGES.monthlyQuotaExceeded;
+      }
+    }
     return null;
   }
   if (owner.billing_mode === 'credits' && owner.credit_balance <= 0) return GATED_MESSAGES.creditsExhausted;
@@ -216,7 +235,7 @@ router.post('/scorecards/:slug/submit', submitLimiter, async (req, res, next) =>
     );
 
     const owner = await get(
-      'SELECT id, email, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code FROM users WHERE id = ?',
+      'SELECT id, email, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code, plan FROM users WHERE id = ?',
       [row.user_id]
     );
     const reportUrl = `${appUrl()}/api/public/leads/${id}/report.pdf`;
@@ -239,16 +258,34 @@ router.post('/scorecards/:slug/submit', submitLimiter, async (req, res, next) =>
 
     } else if (owner && owner.billing_mode === 'cpl' && owner.paystack_authorization_code) {
       chargeCplLead({ owner, leadId: id }).catch(err => console.error('[public] CPL charge failed:', err));
+    } else if (owner && owner.billing_mode === 'subscription') {
+      // Increment the monthly response counter for subscription accounts.
+      run('UPDATE users SET monthly_responses_used = monthly_responses_used + 1 WHERE id = ?', [owner.id])
+        .catch(err => console.error('[public] monthly response increment failed:', err));
     }
+
+    // Mark nudge-start as completed if the visitor provided a start_id.
+    const { nudgeStartId } = req.body || {};
+    if (nudgeStartId) {
+      run(
+        'UPDATE scorecard_nudge_starts SET completed_at = now() WHERE id = ? AND scorecard_id = ?',
+        [nudgeStartId, row.id]
+      ).catch(err => console.error('[public] nudge start mark-complete failed:', err));
+    }
+
+    // PDF plans gate — B3: only Business+ accounts generate a PDF.
+    const PDF_PLANS = new Set(['business', 'pro', 'enterprise']);
 
     // Fire-and-forget — the browser gets its personalized result immediately
     // below; the PDF and emails happen in the background and never block it.
     (async () => {
       let pdfBuffer;
-      try {
-        pdfBuffer = await buildReportPdf(personalization, brandName);
-      } catch (err) {
-        console.error('[public] PDF generation failed:', err);
+      if (PDF_PLANS.has(owner && owner.plan)) {
+        try {
+          pdfBuffer = await buildReportPdf(personalization, brandName);
+        } catch (err) {
+          console.error('[public] PDF generation failed:', err);
+        }
       }
       if (email) {
         leadResultsEmail({ to: email, businessName: brandName, personalization, reportUrl, pdfBuffer })
@@ -272,6 +309,27 @@ router.post('/scorecards/:slug/submit', submitLimiter, async (req, res, next) =>
   } catch (err) {
     next(err);
   }
+});
+
+// POST /api/public/scorecard-nudge-starts
+// Called by take.js after the gate form — records a visitor who entered contact
+// info but has not yet submitted. Only inserts for Business/Pro/Enterprise owners.
+router.post('/scorecard-nudge-starts', startLimiter, async (req, res, next) => {
+  try {
+    const { slug, firstName, lastName, email, phone } = req.body || {};
+    if (!slug) return res.status(400).json({ error: 'Missing slug.' });
+    const row = await get('SELECT id, user_id, slug FROM scorecards WHERE slug = ? AND published = 1', [slug]);
+    if (!row) return res.status(404).json({ error: 'Scorecard not available.' });
+    const owner = await get('SELECT plan FROM users WHERE id = ?', [row.user_id]);
+    const NUDGE_PLANS = new Set(['business', 'pro', 'enterprise']);
+    if (!owner || !NUDGE_PLANS.has(owner.plan)) return res.json({ ok: true, nudgeStartId: null });
+    const id = crypto.randomUUID();
+    await run(
+      'INSERT INTO scorecard_nudge_starts (id, scorecard_id, scorecard_slug, first_name, last_name, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [id, row.id, row.slug, firstName || null, lastName || null, email || null, phone || null]
+    );
+    res.status(201).json({ ok: true, nudgeStartId: id });
+  } catch (err) { next(err); }
 });
 
 // Lets a lead (re)download their own PDF from the results page or the emailed

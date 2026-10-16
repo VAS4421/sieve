@@ -6,7 +6,7 @@ async function requireAuth(req, res, next) {
     const session = readSession(req);
     if (!session) return res.status(401).json({ error: 'Not signed in.' });
 
-    const account = await get('SELECT id, business_name, email, plan, created_at, is_admin FROM users WHERE id = ?', [session.sub]);
+    const account = await get('SELECT id, business_name, email, plan, has_ever_paid, created_at, is_admin FROM users WHERE id = ?', [session.sub]);
     if (!account) return res.status(401).json({ error: 'Not signed in.' });
 
     req.user = account; // the account being acted on — unchanged shape for every existing route

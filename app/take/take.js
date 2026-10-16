@@ -50,6 +50,7 @@
   const answers = [];
   let lead = {};
   let profile = {};
+  let nudgeStartId = null;
   let startTime = null;
   const pc = scorecard.profileCapture || { enabled: false };
 
@@ -150,6 +151,16 @@
       // pollute that figure with test runs.
       if (!isPreview) {
         fetch(`/api/public/scorecards/${encodeURIComponent(slug)}/start`, { method: 'POST' }).catch(() => {});
+      }
+      if (!isPreview && lead.email) {
+        fetch('/api/public/scorecard-nudge-starts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, firstName: lead.firstName, lastName: lead.lastName, email: lead.email, phone: lead.phone }),
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data && data.nudgeStartId) nudgeStartId = data.nudgeStartId; })
+          .catch(() => {});
       }
       step = 0;
       render();
@@ -329,7 +340,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: isPreview ? 'include' : 'same-origin',
-        body: JSON.stringify({ ...lead, answers, profile, timeToCompleteSeconds }),
+        body: JSON.stringify({ ...lead, answers, profile, timeToCompleteSeconds, nudgeStartId }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Could not submit.');
       result = await res.json();
