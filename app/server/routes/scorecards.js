@@ -15,6 +15,10 @@ const { appUrl } = require('../mailer');
 const router = express.Router();
 router.use(requireAuth);
 
+// Scorecard limits by plan — enforced at creation time.
+const SCORECARD_LIMITS = { free: 1, starter: 3, business: 10, pro: 30, enterprise: Infinity };
+function scorecardLimitFor(plan) { return SCORECARD_LIMITS[plan] ?? SCORECARD_LIMITS.free; }
+
 // Cover-image uploads land in app/public/uploads, which is already served
 // statically at the site root (see index.js) — so a saved file is reachable
 // at /uploads/<filename> with no new static route needed.
@@ -113,7 +117,7 @@ router.post('/', async (req, res, next) => {
     // req.user as-is and this account's saved-card authorization code
     // shouldn't ever reach the browser.
     const billing = await get(
-      'SELECT billing_mode, credit_balance, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at, is_admin FROM users WHERE id = ?',
+      'SELECT billing_mode, credit_balance, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at, plan, is_admin FROM users WHERE id = ?',
       [req.user.id]
     );
 
@@ -139,6 +143,15 @@ router.post('/', async (req, res, next) => {
       return res.status(402).json({ error: 'Your pay-per-lead card needs attention before you can create more scorecards — check Billing.' });
     } else if (billing.billing_mode === 'subscription' && billing.plan_expires_at && new Date(billing.plan_expires_at) < new Date()) {
       return res.status(402).json({ error: 'Your subscription has expired — renew to create more scorecards.' });
+    } else if (billing.billing_mode === 'subscription') {
+      // Enforce per-plan scorecard cap for active subscription accounts.
+      const limit = scorecardLimitFor(billing.plan);
+      if (Number.isFinite(limit)) {
+        const { count } = await get('SELECT COUNT(*) as count FROM scorecards WHERE user_id = ?', [req.user.id]);
+        if (Number(count) >= limit) {
+          return res.status(402).json({ error: `Your ${billing.plan} plan allows ${limit} scorecard${limit === 1 ? '' : 's'}. Upgrade to create more.` });
+        }
+      }
     }
 
     const title = (req.body && req.body.title) || 'Untitled scorecard';
@@ -279,6 +292,11 @@ router.get('/:id/report', async (req, res, next) => {
   try {
     const row = await ownedScorecardOr404(req, res);
     if (!row) return;
+    // B5 — Advanced insights require Business plan or above.
+    const INSIGHTS_PLANS = new Set(['business', 'pro', 'enterprise']);
+    if (!INSIGHTS_PLANS.has(req.user.plan)) {
+      return res.status(402).json({ error: 'Advanced insights are available on the Business plan and above. Upgrade to view this report.' });
+    }
 
     const categories = JSON.parse(row.categories);
     const tiers = JSON.parse(row.tiers);
@@ -381,6 +399,10 @@ router.get('/:id/leads.csv', async (req, res, next) => {
   try {
     const row = await ownedScorecardOr404(req, res);
     if (!row) return;
+    // B4 — CSV export requires a paid plan.
+    if (!req.user.has_ever_paid) {
+      return res.status(402).json({ error: 'CSV export is available on paid plans. Upgrade to export your leads.' });
+    }
     const leads = await all('SELECT * FROM leads WHERE scorecard_id = ? ORDER BY created_at DESC', [row.id]);
     const header = 'First name,Last name,Phone,Email,Overall score,Tier,Age range,Gender,Location,Social class,Interest,Time to complete (s),Date\n';
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;

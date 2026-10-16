@@ -14,9 +14,9 @@ router.get('/config', (req, res) => {
 });
 
 const PLAN_PRICES_KOBO = {
-  starter: 2500000,  // ₦25,000
-  business: 6500000, // ₦65,000
-  pro: 9500000,      // ₦95,000
+  starter: 1500000,   // ₦15,000
+  business: 6000000,  // ₦60,000
+  pro: 10000000,      // ₦100,000
 };
 
 router.get('/plan-prices', (req, res) => {
@@ -58,9 +58,9 @@ router.post('/verify', requireAuth, async (req, res) => {
 // a recurring subscription top up in one go, spend it down as leads come in) ---
 
 const CREDIT_BUNDLES = {
-  starter100: { credits: 100, amountKobo: 1200000, label: '100 credits — ₦12,000' },
-  growth500: { credits: 500, amountKobo: 5000000, label: '500 credits — ₦50,000', badge: 'Most popular' },
-  scale2000: { credits: 2000, amountKobo: 16000000, label: '2,000 credits — ₦160,000', badge: 'Best value' },
+  starter100: { credits: 100, amountKobo: 1800000, label: '100 credits — ₦18,000' },
+  growth500: { credits: 500, amountKobo: 7000000, label: '500 credits — ₦70,000', badge: 'Most Popular' },
+  scale2000: { credits: 2000, amountKobo: 24000000, label: '2,000 credits — ₦240,000', badge: 'Best Value' },
 };
 
 router.get('/credit-bundles', (req, res) => {

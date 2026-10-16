@@ -89,7 +89,10 @@ async function migrate() {
       -- and the only accounts that can reach /api/admin/* and admin.html.
       -- Set by hand (there's no signup path to this); see requireAdmin.js.
       is_admin BOOLEAN NOT NULL DEFAULT false,
-      created_at TEXT NOT NULL DEFAULT (now()::text)
+      created_at TEXT NOT NULL DEFAULT (now()::text),
+      -- Monthly response tracking for subscription plans — reset every 30 days.
+      monthly_responses_used INTEGER NOT NULL DEFAULT 0,
+      monthly_reset_at TIMESTAMPTZ
     );
 
     CREATE TABLE IF NOT EXISTS scorecards (
@@ -170,6 +173,24 @@ async function migrate() {
       created_at TEXT NOT NULL DEFAULT (now()::text)
     );
 
+    -- Tracks visitors who entered their contact info but did not complete the
+    -- scorecard — used by the abandoned-quiz email nudge job (nudge.js).
+    -- Only created for Business/Pro/Enterprise accounts (the endpoint checks).
+    CREATE TABLE IF NOT EXISTS scorecard_nudge_starts (
+      id TEXT PRIMARY KEY,
+      scorecard_id TEXT NOT NULL REFERENCES scorecards(id),
+      scorecard_slug TEXT NOT NULL,
+      first_name TEXT,
+      last_name TEXT,
+      email TEXT,
+      phone TEXT,
+      completed_at TIMESTAMPTZ,
+      nudge_sent_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_nudge_starts_scorecard ON scorecard_nudge_starts(scorecard_id);
+    CREATE INDEX IF NOT EXISTS idx_nudge_starts_pending ON scorecard_nudge_starts(nudge_sent_at, completed_at);
+
     -- One row per successful credit-bundle purchase (prepaid response-credit model).
     CREATE TABLE IF NOT EXISTS credit_purchases (
       id TEXT PRIMARY KEY,
@@ -249,6 +270,8 @@ async function migrate() {
     ['cpl_charge_failing', 'BOOLEAN NOT NULL DEFAULT false'],
     ['plan_expires_at', 'TIMESTAMPTZ'],
     ['is_admin', 'BOOLEAN NOT NULL DEFAULT false'],
+    ['monthly_responses_used', 'INTEGER NOT NULL DEFAULT 0'],
+    ['monthly_reset_at', 'TIMESTAMPTZ'],
   ];
   for (const [name, def] of newUserColumns) {
     if (!userColumns.has(name)) {
