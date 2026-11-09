@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/app.css" />
 <style>
   :root {
-    --c-score: #C1501F; --c-score-soft: #F7E2D3;
+    --c-score: #3B5BFD; --c-score-soft: #E8EDFF;
     --c-cat: #1F5FE0; --c-cat-soft: #E6EDFC;
     --c-demo: #7C3AED; --c-demo-soft: #F1E8FE;
     --c-geo: #0D9488; --c-geo-soft: #DCF5F2;
@@ -127,7 +127,7 @@
       const content = document.getElementById('content');
       const maxTrend = Math.max(1, ...r.trend.map(t => t.count));
 
-      const tierPalette = ['#C1501F', '#1F5FE0', '#8285A0', '#16825D'];
+      const tierPalette = ['#3B5BFD', '#12C2E9', '#7D879F', '#0E9F6E'];
       const tierDonutItems = r.tierBreakdown.filter(t => t.count > 0).map(t => ({ label: t.label, count: t.count, pct: t.pct }));
 
       const audienceCards = [];

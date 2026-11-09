@@ -86,7 +86,7 @@
   const brand = () => (state.brandName && state.brandName.trim()) || (USER && USER.business_name) || 'Your business';
   const liveUrl = () => `${location.origin}/take/index.html?slug=${state.slug}`;
   const LETTERS = 'ABCDEFGHIJKLMNOP';
-  const TIER_COLORS = ['#16825D', '#C1501F', '#1F5FE0', '#8285A0', '#7C3AED'];
+  const TIER_COLORS = ['#0E9F6E', '#E08A0B', '#3B5BFD', '#7D879F', '#7C3AED'];
   function slugKey(text, existingKeys) {
     let base = text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '') || 'cat';
     let key = base, n = 1;
