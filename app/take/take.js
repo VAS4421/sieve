@@ -326,12 +326,22 @@
       .replace(/\{link\}/g, ctx.link);
   }
 
+  // ---------- the result page ----------
+  // Built as a journey: the reveal (score + tier), what they didn't know about themselves (strength vs blind
+  // spot), the gap to their best result, the category deep-dive, their own answers read back with insight,
+  // then the next step. Everything shown comes from the server's personalised result for this lead.
+  const BAND = {
+    strong: { color: '#0E9F6E', soft: '#E2F7EF', label: 'Strong' },
+    developing: { color: '#D98A06', soft: '#FFF4DE', label: 'Developing' },
+    weak: { color: '#E5484D', soft: '#FDECEC', label: 'Needs focus' },
+  };
+  const overallBand = (n) => (n >= 70 ? 'strong' : n >= 40 ? 'developing' : 'weak');
+
   async function renderResult() {
     renderProgress();
-    root.innerHTML = `<div class="demo-body"><p class="text-center" style="color:var(--ink-faint);">Scoring your answers…</p></div>`;
+    root.innerHTML = `<div class="rx-loading"><div class="rx-spinner"></div><p>Reading your answers…</p></div>`;
 
     const timeToCompleteSeconds = startTime ? Math.round((Date.now() - startTime) / 1000) : null;
-
     let result;
     try {
       const res = await fetch(isPreview
@@ -350,118 +360,183 @@
     }
 
     const p = result.personalization;
-
-    const donutBlock = buildResultDonut(p.categoryNarratives, p.overall);
-
-    const legendBlock = p.categoryNarratives.length > 1 ? `
-      <div class="result-legend">
-        ${['weak', 'developing', 'strong'].map(band => `
-          <span class="result-legend-item"><span class="result-legend-dot" style="background:${BAND_COLOR[band]}"></span>${BAND_LEGEND_LABEL[band]}</span>
-        `).join('')}
-      </div>
-    ` : '';
-
-    const catTabs = p.categoryNarratives.map((c, i) => `
-      <button class="result-tab${i === 0 ? ' active' : ''}" data-cat-tab="${c.key}">${escapeHtml(c.label)}</button>
-    `).join('');
-
-    const catPanels = p.categoryNarratives.map((c) => `
-      <div class="result-cat-panel" data-cat-panel="${c.key}">
-        <div class="result-cat-card">
-          <div class="result-cat-card-top">
-            <div class="result-cat-icon" style="color:${BAND_COLOR[c.band] || 'var(--accent)'}">${categoryIconSvg(c.label)}</div>
-            <div class="result-cat-title">${escapeHtml(c.label)}</div>
-            <div class="result-cat-badge" style="background:${BAND_COLOR[c.band] || 'var(--accent)'}">${c.score}%</div>
-          </div>
-          <h3 class="result-cat-headline">${escapeHtml(c.headline)}</h3>
-          <p class="result-cat-message">${escapeHtml(c.message)}</p>
-          <ul class="result-cat-checklist">
-            ${c.checklist.map(item => `<li><span class="chk">✓</span><span><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.text)}</span></li>`).join('')}
-          </ul>
-        </div>
-      </div>
-    `).join('');
-
-    const categoryDeepDive = p.categoryNarratives.length ? `
-      ${p.categoryNarratives.length > 1 ? `<div class="result-tabs">${catTabs}</div>` : ''}
-      <div class="result-tab-panels">${catPanels}</div>
-    ` : '';
-
-    const ctaBlock = p.recommendation ? `
-      <div class="result-cta">
-        <div class="result-cta-icon">👋</div>
-        <div class="result-cta-headline">${escapeHtml(p.ctaHeadline || 'Want to go deeper on your results?')}</div>
-        <p>${escapeHtml(p.recommendation)}</p>
-        ${p.recommendationUrl ? `<a href="${escapeHtml(p.recommendationUrl)}" class="btn btn-accent btn-sm" target="_blank" rel="noopener">${escapeHtml(p.recommendationLabel || 'Book Now')} →</a>` : ''}
-      </div>
-    ` : '';
-
-    const engagementBlock = result.engagementMode ? `
-      <div class="result-engagement">
-        ${result.timeToCompleteSeconds != null ? `<span class="result-time-badge">⏱ Completed in ${formatDuration(result.timeToCompleteSeconds)}</span>` : ''}
-        <button class="btn btn-ghost btn-sm" id="share-btn" type="button">Share your result</button>
-      </div>
-    ` : '';
+    const cats = p.categoryNarratives || [];
+    const name = escapeHtml(p.greetingName && p.greetingName !== 'there' ? p.greetingName : '');
+    const ob = overallBand(p.overall);
+    const sorted = [...cats].sort((a, b) => a.score - b.score);
+    const weakest = sorted[0], strongest = sorted[sorted.length - 1];
+    const showPair = cats.length > 1 && strongest.score - weakest.score >= 10;
+    const gap = Math.max(0, 100 - p.overall);
+    const hasCta = !!(p.recommendation && p.recommendationUrl);
+    const ctaLabel = escapeHtml(p.recommendationLabel || 'Book Now');
 
     const shareLink = `${location.origin}/take/index.html?slug=${slug}`;
-    const shareText = buildShareText(result.shareTemplate, {
-      score: p.overall, title: scorecard.title, brand: brandName, tier: p.tierLabel, link: shareLink,
-    });
+    const shareText = buildShareText(result.shareTemplate, { score: p.overall, title: scorecard.title, brand: brandName, tier: p.tierLabel, link: shareLink });
     const whatsappHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-    const whatsappIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.77.46 3.45 1.32 4.94L2 22l5.2-1.29A9.96 9.96 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2Zm0 18a7.96 7.96 0 0 1-4.06-1.11l-.29-.17-3.09.77.83-2.99-.19-.31A7.96 7.96 0 1 1 12 20Zm4.38-5.96c-.24-.12-1.41-.7-1.63-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1-.37-1.9-1.17-.7-.62-1.18-1.39-1.31-1.63-.14-.24-.01-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.31-.02-.43-.06-.12-.54-1.31-.74-1.79-.2-.47-.4-.4-.54-.41h-.47c-.16 0-.42.06-.64.31-.22.24-.85.83-.85 2.04 0 1.21.87 2.37 1 2.53.12.16 1.71 2.62 4.15 3.67.58.25 1.03.4 1.38.51.58.19 1.1.16 1.52.1.46-.07 1.41-.58 1.61-1.13.2-.56.2-1.03.14-1.13-.06-.1-.22-.16-.46-.28Z"/></svg>`;
+    const waIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.77.46 3.45 1.32 4.94L2 22l5.2-1.29A9.96 9.96 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2Zm0 18a7.96 7.96 0 0 1-4.06-1.11l-.29-.17-3.09.77.83-2.99-.19-.31A7.96 7.96 0 1 1 12 20Zm4.38-5.96c-.24-.12-1.41-.7-1.63-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1-.37-1.9-1.17-.7-.62-1.18-1.39-1.31-1.63-.14-.24-.01-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.31-.02-.43-.06-.12-.54-1.31-.74-1.79-.2-.47-.4-.4-.54-.41h-.47c-.16 0-.42.06-.64.31-.22.24-.85.83-.85 2.04 0 1.21.87 2.37 1 2.53.12.16 1.71 2.62 4.15 3.67.58.25 1.03.4 1.38.51.58.19 1.1.16 1.52.1.46-.07 1.41-.58 1.61-1.13.2-.56.2-1.03.14-1.13-.06-.1-.22-.16-.46-.28Z"/></svg>`;
+    const arrow = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 
-    const resultFooter = result.preview
-      ? `<p style="color:var(--ink-soft);font-size:13.5px;margin-top:18px;">This was a preview — no lead was recorded, and no email or PDF was sent.</p>
-         <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
-          <a class="btn btn-whatsapp btn-sm" href="${whatsappHref}" target="_blank" rel="noopener">${whatsappIcon}Send this to WhatsApp</a>
-         </div>`
-      : `<p style="color:var(--ink-soft);font-size:13.5px;margin-top:18px;">
-           ${lead.email ? `Your full personalised report has also been emailed to ${escapeHtml(lead.email)}.` : 'Thanks — your results have been recorded.'}
-         </p>
-         <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
-           <a class="btn btn-ghost btn-sm" href="${result.reportUrl}" target="_blank" rel="noopener">Download your PDF report ↓</a>
-           <a class="btn btn-whatsapp btn-sm" href="${whatsappHref}" target="_blank" rel="noopener">${whatsappIcon}Send this to WhatsApp</a>
-         </div>`;
+    // 1. the reveal
+    const hero = `
+      <section class="rx-hero rx-${ob}">
+        <p class="rx-eyebrow">${name ? `${name}, here's` : `Here's`} what your answers reveal</p>
+        <div class="rx-ring" style="--p:0" data-target="${p.overall}">
+          <svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="rxg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent-2, #12C2E9)"/></linearGradient></defs>
+            <circle cx="60" cy="60" r="52" class="rx-ring-bg"/><circle cx="60" cy="60" r="52" class="rx-ring-fg" pathLength="100"/></svg>
+          <div class="rx-ring-c"><b><span data-count="${p.overall}">0</span><i>%</i></b><small>your score</small></div>
+        </div>
+        <span class="rx-tier" style="--c:${BAND[ob].color};--s:${BAND[ob].soft}">${escapeHtml(p.tierLabel)}</span>
+        <h1 class="rx-h1">${escapeHtml(p.tierHeadline)}</h1>
+        ${p.tierMessage ? `<p class="rx-lead">${escapeHtml(p.tierMessage)}</p>` : ''}
+        ${result.engagementMode && result.timeToCompleteSeconds != null ? `<span class="rx-time">⏱ Completed in ${formatDuration(result.timeToCompleteSeconds)}</span>` : ''}
+        ${hasCta ? `<a class="rx-btn rx-hero-btn" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener">${ctaLabel}${arrow}</a>` : ''}
+      </section>`;
 
-    root.innerHTML = `
-      <div class="demo-body demo-result">
-        <p class="result-greeting">Hi ${escapeHtml(p.greetingName)}, here's your result</p>
-        <div class="result-tier">${escapeHtml(p.tierHeadline)}</div>
-        ${donutBlock}
-        ${legendBlock}
-        ${p.tierMessage ? `<p class="result-tier-message">${escapeHtml(p.tierMessage)}</p>` : ''}
-        ${engagementBlock}
-        ${categoryDeepDive}
-        ${ctaBlock}
-        ${resultFooter}
-      </div>
-    `;
+    // 2. what they didn't know about themselves
+    const pair = showPair ? `
+      <section class="rx-section">
+        <p class="rx-kicker">What stands out</p>
+        <h2 class="rx-h2">${name ? `${name}, this` : 'This'} is what your answers say about you.</h2>
+        <div class="rx-pair">
+          <div class="rx-pcard good">
+            <span class="rx-pc-tag">Your strength</span>
+            <div class="rx-pc-top"><b>${escapeHtml(strongest.label)}</b><span>${strongest.score}%</span></div>
+            <div class="rx-bar"><i data-w="${strongest.score}" style="--c:${BAND[strongest.band].color}"></i></div>
+            <p>${escapeHtml(strongest.headline)}</p>
+          </div>
+          <div class="rx-pcard gap">
+            <span class="rx-pc-tag">Your blind spot</span>
+            <div class="rx-pc-top"><b>${escapeHtml(weakest.label)}</b><span>${weakest.score}%</span></div>
+            <div class="rx-bar"><i data-w="${weakest.score}" style="--c:${BAND[weakest.band].color}"></i></div>
+            <p>${escapeHtml(weakest.headline)}</p>
+          </div>
+        </div>
+      </section>` : '';
+
+    // 3. the gap to their best result
+    const gapBlock = gap > 0 ? `
+      <section class="rx-gapcard">
+        <div class="rx-gap-copy">
+          <p class="rx-kicker light">Your potential</p>
+          <h2>You're at <b>${p.overall}%</b>. ${gap} point${gap === 1 ? '' : 's'} stand between you and your best result.</h2>
+          <p>${cats.length > 1 ? `Most of that gap sits in <b>${escapeHtml(weakest.label)}</b>. Small changes there move your whole score.` : 'The steps below show exactly where to start.'}</p>
+        </div>
+        <div class="rx-track" aria-hidden="true">
+          <div class="rx-track-fill" data-w="${p.overall}"></div>
+          <span class="rx-you" style="left:${p.overall}%"><i></i><em>You · ${p.overall}%</em></span>
+          <span class="rx-goal"><em>Your best · 100%</em></span>
+        </div>
+      </section>` : '';
+
+    // 4. the category deep-dive (biggest opportunity first)
+    const ordered = cats.length > 1 ? [weakest, ...cats.filter(c => c.key !== weakest.key && c.key !== strongest.key), strongest] : cats;
+    const catBlock = cats.length ? `
+      <section class="rx-section">
+        <p class="rx-kicker">Your breakdown</p>
+        <h2 class="rx-h2">Where you stand, area by area.</h2>
+        <div class="rx-cats">${ordered.map((c, i) => {
+          const b = BAND[c.band] || BAND.developing;
+          const badge = cats.length > 1 && c.key === weakest.key && showPair ? '<span class="rx-badge op">Biggest opportunity</span>' : cats.length > 1 && c.key === strongest.key && showPair ? '<span class="rx-badge st">Your strength</span>' : '';
+          return `<article class="rx-cat ${i === 0 ? 'open' : ''}" style="--c:${b.color};--s:${b.soft}">
+            <button class="rx-cat-head" type="button" aria-expanded="${i === 0}">
+              <span class="rx-cat-ic">${categoryIconSvg(c.label)}</span>
+              <span class="rx-cat-t"><b>${escapeHtml(c.label)}</b>${badge}<small>${b.label}</small></span>
+              <span class="rx-cat-score">${c.score}%</span>
+              <span class="rx-chev" aria-hidden="true"></span>
+            </button>
+            <div class="rx-bar thin"><i data-w="${c.score}" style="--c:${b.color}"></i></div>
+            <div class="rx-cat-body">
+              <h3>${escapeHtml(c.headline)}</h3>
+              <p>${escapeHtml(c.message)}</p>
+              ${(c.checklist || []).length ? `<div class="rx-todo"><span>What to do next</span><ul>${c.checklist.map(it => `<li><i>✓</i><span><b>${escapeHtml(it.label)}:</b> ${escapeHtml(it.text)}</span></li>`).join('')}</ul></div>` : ''}
+            </div>
+          </article>`; }).join('')}</div>
+      </section>` : '';
+
+    // 5. their own answers, read back with insight
+    const ins = p.answerInsights || [];
+    const insBlock = ins.length ? `
+      <section class="rx-section">
+        <p class="rx-kicker">In your own words</p>
+        <h2 class="rx-h2">What your answers tell us.</h2>
+        <div class="rx-quotes">${ins.map((a, i) => `
+          <div class="rx-quote ${i >= 3 ? 'more' : ''}">
+            <p class="rx-q-q">${escapeHtml(a.question)}</p>
+            <p class="rx-q-a">“${escapeHtml(a.answer)}”</p>
+            <p class="rx-q-i">${escapeHtml(a.insight)}</p>
+          </div>`).join('')}</div>
+        ${ins.length > 3 ? `<button class="rx-more" type="button" id="rx-more">See all ${ins.length} insights</button>` : ''}
+      </section>` : '';
+
+    // 6. the next step
+    const ctaBlock = hasCta ? `
+      <section class="rx-cta" id="rx-cta">
+        <div class="rx-cta-glow"></div>
+        <p class="rx-kicker light">Your next step</p>
+        <h2>${escapeHtml(p.ctaHeadline || `${p.greetingName}, let's turn this into results`)}</h2>
+        <p class="rx-cta-text">${escapeHtml(p.recommendation)}</p>
+        <a class="rx-btn big" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener">${ctaLabel}${arrow}</a>
+        <ul class="rx-why">
+          <li><span>Built around <b>your</b> answers, not a generic pitch</span></li>
+          ${cats.length > 1 ? `<li><span>Start with <b>${escapeHtml(weakest.label)}</b>, your quickest win</span></li>` : '<li><span>Know exactly where to start</span></li>'}
+          <li><span>Best done while your result is fresh</span></li>
+        </ul>
+      </section>` : (p.recommendation ? `
+      <section class="rx-cta soft"><p class="rx-kicker">Your next step</p><h2>${escapeHtml(p.ctaHeadline || 'Want to go deeper on your results?')}</h2><p class="rx-cta-text">${escapeHtml(p.recommendation)}</p></section>` : '');
+
+    // 7. keep it, share it
+    const keep = `
+      <section class="rx-keep">
+        ${result.preview
+          ? `<p>This was a preview. No lead was recorded, and no email or PDF was sent.</p>`
+          : `<p>${lead.email ? `Your full report is on its way to <b>${escapeHtml(lead.email)}</b>.` : 'Your result has been saved.'}</p>`}
+        <div class="rx-keep-btns">
+          ${result.preview ? '' : `<a class="rx-ghost" href="${result.reportUrl}" target="_blank" rel="noopener">Download your PDF report ↓</a>`}
+          <a class="rx-ghost wa" href="${whatsappHref}" target="_blank" rel="noopener">${waIcon}${result.engagementMode ? 'Share your result' : 'Send to WhatsApp'}</a>
+        </div>
+      </section>`;
+
+    root.innerHTML = `<div class="rx">${hero}${pair}${gapBlock}${catBlock}${insBlock}${ctaBlock}${keep}</div>
+      ${hasCta ? `<div class="rx-sticky" id="rx-sticky" aria-hidden="true"><span><b>${p.overall}%</b> ${cats.length > 1 ? `· your quickest win is ${escapeHtml(weakest.label)}` : `· ${escapeHtml(p.tierLabel)}`}</span><a class="rx-btn" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener" tabindex="-1">${ctaLabel}${arrow}</a></div>` : ''}`;
+    document.body.classList.add('is-result');
     const bar = document.querySelector('.demo-progress-wrap');
     if (bar) bar.style.display = 'none';
+    window.scrollTo(0, 0);
 
-    root.querySelectorAll('[data-cat-tab]').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const key = tab.dataset.catTab;
-        root.querySelectorAll('[data-cat-tab]').forEach(t => t.classList.toggle('active', t === tab));
-        const panel = Array.from(root.querySelectorAll('[data-cat-panel]')).find(p => p.dataset.catPanel === key);
-        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    });
+    // motion: count the score up, sweep the ring, grow bars as they come into view
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ring = root.querySelector('.rx-ring'), num = root.querySelector('[data-count]');
+    const target = p.overall;
+    if (reduce) { ring.style.setProperty('--p', target); num.textContent = target; }
+    else {
+      const t0 = performance.now(), dur = 1400;
+      const tick = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); const v = Math.round(target * e); num.textContent = v; ring.style.setProperty('--p', v); if (k < 1) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }
+    const grow = (el) => { el.style.width = el.dataset.w + '%'; };
+    const bars = root.querySelectorAll('[data-w]');
+    if (reduce || !('IntersectionObserver' in window)) bars.forEach(grow);
+    else {
+      const io = new IntersectionObserver((entries) => entries.forEach(en => { if (en.isIntersecting) { grow(en.target); io.unobserve(en.target); } }), { threshold: 0.3 });
+      bars.forEach(b => io.observe(b));
+    }
 
-    const shareBtn = document.getElementById('share-btn');
-    if (shareBtn) {
-      shareBtn.addEventListener('click', async () => {
-        const shareLink = `${location.origin}/take/index.html?slug=${slug}`;
-        const text = buildShareText(result.shareTemplate, {
-          score: p.overall, title: scorecard.title, brand: brandName, tier: p.tierLabel, link: shareLink,
-        });
-        try {
-          await navigator.clipboard.writeText(text);
-          shareBtn.textContent = '✓ Copied — paste it anywhere';
-        } catch {
-          shareBtn.textContent = text;
-        }
-      });
+    // categories open and close
+    root.querySelectorAll('.rx-cat-head').forEach(h => h.addEventListener('click', () => {
+      const card = h.closest('.rx-cat'), open = !card.classList.contains('open');
+      card.classList.toggle('open', open); h.setAttribute('aria-expanded', String(open));
+    }));
+    const more = document.getElementById('rx-more');
+    if (more) more.addEventListener('click', () => { root.querySelectorAll('.rx-quote.more').forEach(q => q.classList.remove('more')); more.remove(); });
+
+    // the slim next-step bar: shows once the hero button has scrolled away, hides at the main call to action
+    const sticky = document.getElementById('rx-sticky');
+    if (sticky && 'IntersectionObserver' in window) {
+      const heroBtn = root.querySelector('.rx-hero-btn'), cta = document.getElementById('rx-cta');
+      let pastHero = false, atCta = false;
+      const update = () => { const show = pastHero && !atCta; sticky.classList.toggle('show', show); sticky.setAttribute('aria-hidden', String(!show)); sticky.querySelector('a').tabIndex = show ? 0 : -1; };
+      new IntersectionObserver(([e]) => { pastHero = !e.isIntersecting && e.boundingClientRect.top < 0; update(); }).observe(heroBtn);
+      new IntersectionObserver(([e]) => { atCta = e.isIntersecting; update(); }, { threshold: 0.2 }).observe(cta);
     }
   }
 
