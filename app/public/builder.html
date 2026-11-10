@@ -8,504 +8,518 @@
 <link rel="apple-touch-icon" href="/logo.png" />
 <link rel="stylesheet" href="/styles.css" />
 <link rel="stylesheet" href="/app.css" />
+<link rel="stylesheet" href="/builder.css" />
 </head>
-<body>
-  <div class="app-shell">
-    <div class="app-topbar">
-      <a href="/dashboard.html" class="brand" style="font-size:16px;">← <img src="/logo.png" class="brand-mark" style="width:26px;height:26px;" alt="Sieve logo" />Sieve</a>
-      <div class="actions">
-        <span class="save-status" id="save-status"></span>
-        <button class="btn btn-ghost btn-sm" id="preview-btn">Preview</button>
-        <button class="btn btn-primary btn-sm" id="save-btn">Save</button>
-      </div>
+<body class="sb">
+  <!-- top bar -->
+  <header class="sb-top">
+    <a href="/dashboard.html" class="sb-back" title="Back to your scorecards" aria-label="Back to your scorecards"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <img src="/logo.png" class="sb-logo" alt="Sieve" />
+    <div class="sb-name">
+      <input id="top-title" placeholder="Untitled scorecard" aria-label="Scorecard name" />
+      <span class="sb-save" id="save-status"><i></i><span>All changes saved</span></span>
     </div>
+    <span class="sb-state" id="state-pill">Draft</span>
+    <div class="sb-top-actions">
+      <button class="sb-btn ghost" id="preview-btn" title="Open the real page in a new tab"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span>Preview</span></button>
+      <button class="sb-btn primary" id="publish-top">Publish</button>
+    </div>
+  </header>
 
-    <main class="app-main">
-      <div class="builder-grid">
-
-        <div class="builder-section">
-          <h2>Landing page</h2>
-          <p class="builder-hint">What a lead sees before they start.</p>
-          <div class="field"><label>Scorecard title</label><input type="text" id="title" placeholder="e.g. The Lead-Readiness Score" /></div>
-          <div class="field"><label>Intro copy</label><textarea id="intro" placeholder="One or two sentences explaining what they'll get."></textarea></div>
-          <div class="field">
-            <label>Brand name shown on this scorecard (optional)</label>
-            <input type="text" id="brand-name" placeholder="Defaults to your account name — set this when building on behalf of a client" />
-          </div>
-          <div class="field">
-            <label>Cover image (optional)</label>
-            <div class="cover-upload-row">
-              <button type="button" class="btn btn-ghost btn-sm" id="cover-upload-btn">Upload image</button>
-              <input type="file" id="cover-upload-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
-              <span id="cover-upload-status" class="builder-hint" style="margin:0;"></span>
-            </div>
-            <input type="url" id="cover-image" placeholder="…or paste an image URL instead" style="margin-top:8px;" />
-            <div id="cover-preview" class="cover-preview" style="display:none;"><img id="cover-preview-img" alt="Cover preview" /></div>
-            <p class="builder-hint" style="margin-top:6px;">A template already comes with a default cover — leave this as-is, upload your own photo or brand image, or paste a link to one you already have hosted somewhere.</p>
-          </div>
-        </div>
-
-        <div class="builder-section">
-          <h2>Scoring categories</h2>
-          <p class="builder-hint">Each question's answers are scored into these categories — they become the bars on the results page. Sieve writes each category's commentary automatically from the respondent's score — write your own low/high message here only if you want to override it.</p>
-          <div id="categories"></div>
-          <button class="add-row-btn" id="add-cat">+ Add category</button>
-        </div>
-
-        <div class="builder-section">
-          <h2>Questions</h2>
-          <p class="builder-hint">Add a question, then give each option a score in whichever categories it applies to. Leave a score at 0 if an option doesn't affect that category. Sieve writes an insight for each answer automatically — add your own only if you want to override it for that specific option.</p>
-          <div id="questions"></div>
-          <button class="add-row-btn" id="add-q">+ Add question</button>
-        </div>
-
-        <div class="builder-section">
-          <h2>Personalise each outcome <span class="section-tag">optional</span></h2>
-          <p class="builder-hint">Every respondent's headline, message, and category commentary are already written automatically from their own score — a scorecard works fully out of the box with nothing filled in here. Write in any field below only if you want to override what Sieve generates for that tier, or to add a recommended next step with a real link (the one thing that has to come from you, since nothing here can invent your booking page or WhatsApp number).</p>
-          <div id="tiers"></div>
-        </div>
-
-        <div class="builder-section">
-          <h2>Brand Campaign Insight <span class="section-tag">Signal Desk</span></h2>
-          <p class="builder-hint">Turn this on for a brand-sponsored campaign. Captures real audience data — demographics, psychographics, location — and powers the colourful Brand Campaign Insight Report your sponsor sees. Off by default; every field below is optional.</p>
-          <label class="toggle-row"><input type="checkbox" id="pc-enabled" /> Capture audience profile data on this scorecard</label>
-          <div id="pc-fields" style="display:none;margin-top:10px;">
-            <label class="toggle-row"><input type="checkbox" id="pc-age" /> Age range</label>
-            <label class="toggle-row"><input type="checkbox" id="pc-gender" /> Gender</label>
-            <label class="toggle-row"><input type="checkbox" id="pc-location" /> Location (Nigerian state)</label>
-            <label class="toggle-row"><input type="checkbox" id="pc-social" /> Income bracket (social class)</label>
-            <label class="toggle-row"><input type="checkbox" id="pc-phone" /> Phone number</label>
-            <div class="field" style="margin-top:12px;"><label>Interest question — psychographic: what they actually care about regarding the brand/product (optional)</label>
-              <input type="text" id="pc-interest-q" placeholder="e.g. Which best describes your interest in [Brand]?" /></div>
-            <div class="field"><label>Interest options, comma-separated (leave blank to skip this question)</label>
-              <input type="text" id="pc-interest-opts" placeholder="e.g. Skincare, Haircare, Makeup, Fragrance" /></div>
-          </div>
-        </div>
-
-        <div class="builder-section">
-          <h2>Engagement Campaign Mode <span class="section-tag">Mobile Engagement Agency</span></h2>
-          <p class="builder-hint">Turn this on to run this as a real engagement campaign — shows the respondent their completion time and a shareable result, and surfaces engagement stats (average time spent) in your report.</p>
-          <label class="toggle-row"><input type="checkbox" id="engagement-mode" /> Enable engagement mode</label>
-          <div class="field" style="margin-top:12px;"><label>Share prompt shown to respondents (optional — tokens: {score} {title} {brand} {tier} {link})</label>
-            <textarea id="share-template" placeholder="I scored {score}% on {title}! Check yours: {link}"></textarea></div>
-        </div>
-
-        <div class="builder-section" id="publish-section">
-          <h2>Publish</h2>
-          <p class="builder-hint" id="publish-hint">Publish to get a live link you can share with leads.</p>
-          <button class="btn btn-accent" id="publish-btn">Publish</button>
-          <div class="share-box" id="share-box" style="display:none;margin-top:14px;">
-            <input type="text" id="share-link" readonly />
-            <button class="icon-btn" id="copy-link" title="Copy link">⧉</button>
-          </div>
-          <div id="embed-block" style="display:none;margin-top:14px;">
-            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">
-              Embed this scorecard inside another page (e.g. a Traffic Desk qualification step)
-            </label>
-            <div class="share-box">
-              <input type="text" id="embed-code" readonly />
-              <button class="icon-btn" id="copy-embed" title="Copy embed code">⧉</button>
-            </div>
-          </div>
-          <div id="qr-block" style="display:none;margin-top:14px;">
-            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">
-              QR code — for flyers, posters, or anywhere a link isn't practical to hand someone
-            </label>
-            <img id="qr-image" alt="QR code linking to this scorecard" width="140" height="140" style="border:1px solid var(--line);border-radius:8px;display:block;margin-bottom:8px;" />
-            <a class="btn btn-ghost btn-sm" id="qr-download" href="#" download>Download QR (PNG)</a>
-          </div>
-          <div id="report-link-block" style="display:none;margin-top:14px;">
-            <a class="btn btn-ghost btn-sm" id="report-link" href="#">View aggregate report</a>
-          </div>
-          <div id="whatsapp-share-block" style="display:none;margin-top:22px;padding-top:18px;border-top:1px solid var(--line);">
-            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">
-              Share on WhatsApp <span class="section-tag" style="margin-left:6px;">Nigerian audience</span>
-            </label>
-            <p class="builder-hint" style="margin-bottom:10px;">Most leads in Nigeria are reached on WhatsApp first — this opens WhatsApp with a ready-to-send message linking to this scorecard. The web link and everything else above still work exactly the same.</p>
-            <a class="btn btn-accent btn-sm" id="whatsapp-share-btn" href="#" target="_blank" rel="noopener" style="margin-bottom:12px;display:inline-block;">Share on WhatsApp</a>
-            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">
-              Or copy this text to paste into a WhatsApp Status, group, or broadcast list
-            </label>
-            <div class="share-box">
-              <input type="text" id="whatsapp-broadcast-text" readonly />
-              <button class="icon-btn" id="copy-whatsapp-text" title="Copy text">⧉</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
+  <div class="sb-body">
+    <!-- 1. areas -->
+    <nav class="sb-rail" id="rail" aria-label="Builder areas"></nav>
+    <!-- 2. outline for the area (questions list, tiers…) -->
+    <aside class="sb-sub" id="sub"></aside>
+    <!-- 3. the page itself: click any text to edit it -->
+    <main class="sb-canvas-wrap">
+      <div class="sb-canvas-bar" id="canvas-bar"></div>
+      <div class="sb-canvas" id="canvas"></div>
     </main>
-
-    <div class="builder-footer">
-      <span class="save-status" id="save-status-bottom"></span>
-      <button class="btn btn-primary" id="save-btn-bottom">Save changes</button>
-    </div>
+    <!-- 4. settings for whatever is selected -->
+    <aside class="sb-panel" id="panel"></aside>
   </div>
+  <input type="file" id="cover-upload-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
 
   <script src="/app.js"></script>
   <script>
-    const params = new URLSearchParams(location.search);
-    const scorecardId = params.get('id');
-    if (!scorecardId) window.location.href = '/dashboard.html';
+  // Sieve builder, laid out like the best quiz builders: areas on the left, the page itself in the middle
+  // (click any text on it to edit), and settings for the selected item on the right.
+  // Server calls are unchanged: GET/PUT /api/scorecards/:id, POST /:id/publish, POST /upload-cover, GET /:id/qr.png.
+  const params = new URLSearchParams(location.search);
+  const scorecardId = params.get('id');
+  if (!scorecardId) window.location.href = '/dashboard.html';
 
-    let state = {
-      title: '', intro: '', categories: [], questions: [], tiers: [], slug: '', published: false,
-      profileCapture: { enabled: false, captureAge: false, captureGender: false, captureLocation: false, captureSocialClass: false, interestQuestion: '', interestOptions: [] },
-      engagementMode: false, shareTemplate: '',
-    };
+  let state = { title: '', intro: '', categories: [], questions: [], tiers: [], slug: '', published: false, profileCapture: { enabled: false, interestOptions: [] }, engagementMode: false, shareTemplate: '' };
+  let USER = null;
+  const AREAS = [
+    { key: 'questions', label: 'Questions', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/>' },
+    { key: 'landing', label: 'Landing', icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 13h6M7 16h4"/>' },
+    { key: 'results', label: 'Results', icon: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>' },
+    { key: 'settings', label: 'Settings', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>' },
+    { key: 'share', label: 'Share', icon: '<path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/>' },
+  ];
+  let AREA = (AREAS.find(a => a.key === location.hash.slice(1)) || AREAS[0]).key;
+  let SEL = { type: 'q', i: 0 };        // what the right panel is editing
+  let TIER = 0;                         // which result tier the results page shows
+  let DEVICE = 'desktop';
+  const openTips = new Set();
+  const activeCats = {};                // per question: categories switched on before any points exist (UI only)
 
-    function slugKey(text, existingKeys) {
-      let base = text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '') || 'cat';
-      let key = base, n = 1;
-      while (existingKeys.includes(key)) { n += 1; key = `${base}${n}`; }
-      return key;
-    }
+  const COLORS = ['#3B5BFD', '#12A4D9', '#7C5CFF', '#0E9F6E', '#E08A0B', '#E5487D'];
+  const TIER_COLORS = ['#0E9F6E', '#E08A0B', '#3B5BFD', '#7D879F', '#7C3AED'];
+  const LETTERS = 'ABCDEFGHIJKLMNOP';
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const brand = () => (state.brandName && state.brandName.trim()) || (USER && USER.business_name) || 'Your business';
+  const liveUrl = () => `${location.origin}/take/index.html?slug=${state.slug}`;
+  const svg = (p) => `<svg viewBox="0 0 24 24">${p}</svg>`;
+  const I = {
+    plus: '<path d="M12 5v14M5 12h14"/>', drag: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/>', trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+    up: '<path d="M18 15l-6-6-6 6"/>', down: '<path d="M6 9l6 6 6-6"/>', desk: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>', phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+    img: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>', user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>', home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>', wand: '<path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5"/>',
+  };
+  function slugKey(text, existing) { let base = text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '') || 'cat'; let key = base, n = 1; while (existing.includes(key)) { n += 1; key = `${base}${n}`; } return key; }
+  const sortedTiers = () => state.tiers.map((t, i) => ({ t, i })).sort((a, b) => b.t.min - a.t.min);
+  const tierMax = (i) => { const s = sortedTiers(), pos = s.findIndex(x => x.i === i); return pos > 0 ? s[pos - 1].t.min - 1 : 100; };
+  const catColor = (key) => COLORS[Math.max(0, state.categories.findIndex(c => c.key === key)) % COLORS.length];
+  const qCats = (qi) => { const q = state.questions[qi]; const on = new Set(activeCats[qi] || []); state.categories.forEach(c => { if (q.options.some(o => Number(o.score?.[c.key] || 0) > 0)) on.add(c.key); }); return state.categories.filter(c => on.has(c.key)); };
 
-    function render() {
-      renderCategories();
-      renderQuestions();
-      renderTiers();
-      renderPublish();
-      document.getElementById('title').value = state.title;
-      document.getElementById('intro').value = state.intro;
-      document.getElementById('brand-name').value = state.brandName || '';
-      document.getElementById('cover-image').value = state.coverImage || '';
-      renderCoverPreview();
-      renderInsightSettings();
-    }
+  /* ---------- autosave ---------- */
+  let saveTimer = null, saving = false, dirty = false, saveAgain = false;
+  function setStatus(kind, text) { const el = $('#save-status'); el.className = 'sb-save ' + kind; el.querySelector('span').textContent = text; }
+  function changed() { dirty = true; setStatus('dirty', 'Saving soon…'); clearTimeout(saveTimer); saveTimer = setTimeout(save, 1000); }
+  async function save() {
+    clearTimeout(saveTimer);
+    if (saving) { saveAgain = true; return; }
+    if (!state.questions.length || state.questions.some(q => !q.text.trim() || q.options.length < 2)) { setStatus('dirty', 'Every question needs text and 2 answers to save'); return; }
+    saving = true; setStatus('saving', 'Saving…');
+    try {
+      const { scorecard } = await api(`/scorecards/${scorecardId}`, { method: 'PUT', body: {
+        title: state.title, intro: state.intro, categories: state.categories, questions: state.questions, tiers: state.tiers,
+        brandName: state.brandName, coverImage: state.coverImage, profileCapture: state.profileCapture, engagementMode: state.engagementMode, shareTemplate: state.shareTemplate } });
+      state.slug = scorecard.slug; state.published = scorecard.published;
+      dirty = false; setStatus('saved', 'All changes saved');
+    } catch (ex) { setStatus('error', 'Not saved, retrying'); showToast(ex.message); clearTimeout(saveTimer); saveTimer = setTimeout(save, 4000); }
+    finally { saving = false; if (saveAgain) { saveAgain = false; save(); } }
+  }
+  window.addEventListener('beforeunload', (e) => { if (dirty) { save(); e.preventDefault(); e.returnValue = ''; } });
+  document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } });
 
-    function renderCoverPreview() {
-      const wrap = document.getElementById('cover-preview');
-      const img = document.getElementById('cover-preview-img');
-      if (state.coverImage && state.coverImage.trim()) {
-        img.src = state.coverImage.trim();
-        wrap.style.display = 'block';
+  /* ---------- drawing ---------- */
+  function go(area, sel) { AREA = area; if (sel) SEL = sel; else SEL = area === 'questions' ? { type: 'q', i: Math.max(0, Math.min(SEL.type === 'q' ? SEL.i : 0, state.questions.length - 1)) } : area === 'results' ? { type: 'tier', i: TIER } : area === 'landing' ? { type: 'landing' } : { type: area }; history.replaceState(null, '', '#' + area); drawAll(); }
+  function drawAll() { drawTop(); drawRail(); drawSub(); drawCanvas(); drawPanel(); }
+  function drawTop() {
+    if (document.activeElement !== $('#top-title')) $('#top-title').value = state.title;
+    const pill = $('#state-pill'); pill.textContent = state.published ? '● Live' : 'Draft'; pill.className = 'sb-state ' + (state.published ? 'live' : '');
+    const pt = $('#publish-top'); pt.textContent = state.published ? 'Share' : 'Publish'; pt.className = 'sb-btn ' + (state.published ? 'ghost' : 'primary');
+  }
+  function drawRail() {
+    $('#rail').innerHTML = AREAS.map(a => `<button class="${a.key === AREA ? 'on' : ''}" data-area="${a.key}" title="${a.label}">${svg(a.icon)}<span>${a.label}</span></button>`).join('');
+    $$('[data-area]', $('#rail')).forEach(b => b.onclick = () => go(b.dataset.area));
+  }
+
+  // the outline column
+  function drawSub() {
+    const el = $('#sub');
+    document.body.classList.toggle('no-sub', !['questions', 'results'].includes(AREA));
+    if (AREA === 'questions') {
+      el.innerHTML = `
+        <div class="sb-sub-head"><b>Lead journey</b></div>
+        <button class="sb-flow ${SEL.type === 'landing' ? 'on' : ''}" data-golanding>${svg(I.home)}<span>Landing page</span></button>
+        <div class="sb-sub-head"><b>Questions</b><span>${state.questions.length}</span></div>
+        <div class="sb-outline" id="outline">${state.questions.map((q, i) => `
+          <div class="sb-oq ${SEL.type === 'q' && SEL.i === i ? 'on' : ''}" draggable="true" data-oq="${i}">
+            <span class="sb-grip" title="Drag to reorder">${svg(I.drag)}</span><span class="sb-on">${i + 1}</span>
+            <span class="sb-ot">${esc(q.text) || '<em>New question</em>'}</span>
+            <span class="sb-odots">${qCats(i).map(c => `<i style="background:${catColor(c.key)}" title="${esc(c.label)}"></i>`).join('')}</span>
+          </div>`).join('')}</div>
+        <button class="sb-add" id="add-q">${svg(I.plus)}Add question</button>
+        <div class="sb-flow muted">${svg(I.user)}<span>Lead details<small>Name, phone, email</small></span></div>
+        <button class="sb-flow" data-goresults>${svg(I.flag)}<span>Result page</span></button>
+        <div class="sb-sub-head" style="margin-top:14px"><b>Categories</b><span>${state.categories.length}</span></div>
+        <div class="sb-cats">${state.categories.map((c, i) => `<button class="sb-cat ${SEL.type === 'cat' && SEL.i === i ? 'on' : ''}" data-cat="${i}"><i style="background:${catColor(c.key)}"></i><span>${esc(c.label)}</span><small>${state.questions.filter((q, qi) => qCats(qi).some(x => x.key === c.key)).length} q</small></button>`).join('')}</div>
+        <button class="sb-add" id="add-cat">${svg(I.plus)}Add category</button>`;
+      $('[data-golanding]', el).onclick = () => go('landing');
+      $('[data-goresults]', el).onclick = () => go('results');
+      $$('[data-oq]', el).forEach(o => o.onclick = () => { SEL = { type: 'q', i: +o.dataset.oq }; drawSub(); drawCanvas(); drawPanel(); });
+      $$('[data-cat]', el).forEach(b => b.onclick = () => { SEL = { type: 'cat', i: +b.dataset.cat }; drawSub(); drawCanvas(); drawPanel(); });
+      $('#add-q').onclick = addQuestion;
+      $('#add-cat').onclick = () => { const key = slugKey('category', state.categories.map(c => c.key)); state.categories.push({ key, label: 'New category' }); state.questions.forEach(q => q.options.forEach(o => { o.score[key] = 0; })); SEL = { type: 'cat', i: state.categories.length - 1 }; changed(); drawAll(); setTimeout(() => { const f = $('#cat-name'); f && (f.focus(), f.select()); }, 30); };
+      bindOutlineDrag();
+    } else if (AREA === 'results') {
+      const s = sortedTiers();
+      el.innerHTML = `
+        <div class="sb-sub-head"><b>Score tiers</b><span>${state.tiers.length}</span></div>
+        <p class="sb-hint">Every lead lands in one tier by their overall score. Each tier gets its own result.</p>
+        <div class="sb-tierbar">${s.slice().reverse().map(({ t, i }) => { const w = tierMax(i) - t.min + 1; return `<span style="flex:${Math.max(w, 4)};background:${TIER_COLORS[i % TIER_COLORS.length]}" title="${esc(t.label)}: ${t.min}–${tierMax(i)}%"></span>`; }).join('')}</div>
+        <div class="sb-tierscale"><span>0%</span><span>100%</span></div>
+        <div class="sb-tiers">${s.map(({ t, i }) => `<button class="sb-tier ${TIER === i ? 'on' : ''}" data-tier="${i}"><i style="background:${TIER_COLORS[i % TIER_COLORS.length]}"></i><span><b>${esc(t.label)}</b><small>${t.min}–${tierMax(i)}%</small></span>${t.recommendationUrl ? '<em title="Has a button">✓</em>' : ''}</button>`).join('')}</div>
+        ${state.tiers.length < 5 ? `<button class="sb-add" id="add-tier">${svg(I.plus)}Add tier</button>` : ''}`;
+      $$('[data-tier]', el).forEach(b => b.onclick = () => { TIER = +b.dataset.tier; SEL = { type: 'tier', i: TIER }; drawSub(); drawCanvas(); drawPanel(); });
+      const at = $('#add-tier', el); if (at) at.onclick = addTier;
+    } else el.innerHTML = '';
+  }
+  function bindOutlineDrag() {
+    let from = null;
+    $$('[data-oq]').forEach(item => {
+      item.addEventListener('dragstart', (e) => { from = +item.dataset.oq; item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+      item.addEventListener('dragend', () => { item.classList.remove('dragging'); $$('.sb-oq').forEach(x => x.classList.remove('over')); });
+      item.addEventListener('dragover', (e) => { e.preventDefault(); $$('.sb-oq').forEach(x => x.classList.toggle('over', x === item)); });
+      item.addEventListener('drop', (e) => {
+        e.preventDefault(); const to = +item.dataset.oq; if (from === null || from === to) return;
+        const [q] = state.questions.splice(from, 1); state.questions.splice(to, 0, q);
+        if (SEL.type === 'q') SEL.i = SEL.i === from ? to : SEL.i; changed(); drawAll();
+      });
+    });
+  }
+
+  // the middle: the real page, editable in place
+  function editable(key, value, ph, cls = '', multi = false) {
+    return `<span class="sb-ed ${cls}" contenteditable="true" spellcheck="true" data-edit="${key}" data-ph="${esc(ph)}" ${multi ? 'data-multi="1"' : ''}>${esc(value || '')}</span>`;
+  }
+  function drawCanvas() {
+    const c = $('#canvas');
+    $('#canvas-bar').innerHTML = ['questions', 'landing', 'results'].includes(AREA)
+      ? `<span class="sb-cb-tip">${svg(I.wand)}Click any text on the page to edit it</span><div class="sb-device"><button class="${DEVICE === 'desktop' ? 'on' : ''}" data-device="desktop" title="Desktop">${svg(I.desk)}</button><button class="${DEVICE === 'mobile' ? 'on' : ''}" data-device="mobile" title="Phone">${svg(I.phone)}</button></div>`
+      : '';
+    $$('[data-device]').forEach(b => b.onclick = () => { DEVICE = b.dataset.device; drawCanvas(); });
+    c.className = 'sb-canvas ' + (DEVICE === 'mobile' ? 'mobile' : '') + (['settings', 'share'].includes(AREA) ? ' plain' : '');
+    const b = esc(brand());
+    if (AREA === 'landing' || (AREA === 'questions' && SEL.type === 'landing')) {
+      const n = state.questions.length;
+      c.innerHTML = `<div class="sb-page sb-landing">
+        <div class="sb-cover ${state.coverImage ? '' : 'empty'}" ${state.coverImage ? `style="background-image:url('${esc(state.coverImage)}')"` : ''} data-pick="cover"><span class="sb-cover-edit">${svg(I.img)}${state.coverImage ? 'Change cover' : 'Add a cover image'}</span></div>
+        <div class="sb-pad">
+          ${editable('brand', state.brandName || '', brand(), 'sb-brand')}
+          ${editable('title', state.title, 'Your scorecard title', 'sb-h1')}
+          ${editable('intro', state.intro, 'One or two sentences on what they will find out.', 'sb-intro', true)}
+          <div class="sb-meta"><span>⏱ ${Math.max(1, Math.round(n * 0.25))} min</span><span>${n} question${n === 1 ? '' : 's'}</span><span>Free</span></div>
+          <div class="sb-start">Start the scorecard →</div>
+        </div></div>`;
+    } else if (AREA === 'questions') {
+      if (SEL.type === 'cat') {
+        const cat = state.categories[SEL.i]; const v = 72;
+        c.innerHTML = `<div class="sb-page"><div class="sb-pad">
+          <div class="sb-brand-static">${b}</div><p class="sb-caption">How "${esc(cat.label)}" shows on a lead's result</p>
+          <div class="sb-catcard"><div class="sb-cc-top"><b>${esc(cat.label)}</b><span style="color:${catColor(cat.key)}">${v}%</span></div><div class="sb-bar"><i style="width:${v}%;background:${catColor(cat.key)}"></i></div>
+            <p class="sb-cc-head">${editable('cat-headline:' + SEL.i, cat.headline || '', 'Headline for this category (leave blank and Sieve writes it)', 'sb-h3')}</p>
+            <p class="sb-cc-msg">${esc(cat.highMessage || cat.lowMessage || 'Sieve writes a personal message here from their score in this category.')}</p></div>
+        </div></div>`;
+      } else if (!state.questions.length) {
+        c.innerHTML = `<div class="sb-page"><div class="sb-pad sb-empty"><h3>No questions yet</h3><p>Add your first question to start building your scorecard.</p><button class="sb-btn primary" id="empty-add">${svg(I.plus)}Add a question</button></div></div>`;
+        $('#empty-add').onclick = addQuestion;
       } else {
-        wrap.style.display = 'none';
+        const qi = Math.max(0, Math.min(SEL.i, state.questions.length - 1)), q = state.questions[qi], n = state.questions.length;
+        c.innerHTML = `<div class="sb-page"><div class="sb-pad">
+          <div class="sb-brand-static">${b}</div>
+          <div class="sb-prog"><i style="width:${Math.round(((qi + 1) / n) * 100)}%"></i></div><div class="sb-count">Question ${qi + 1} of ${n}</div>
+          ${editable('q:' + qi, q.text, 'Type your question', 'sb-h2', true)}
+          <div class="sb-answers">${q.options.map((o, oi) => `<div class="sb-ans"><span class="sb-letter">${LETTERS[oi] || oi + 1}</span>${editable(`o:${qi}:${oi}`, o.label, 'Answer text', 'sb-ans-t')}<span class="sb-ans-pts" title="Points">${qCats(qi).map(cc => Number(o.score[cc.key] || 0)).reduce((a, x) => Math.max(a, x), 0)}</span>${q.options.length > 2 ? `<button class="sb-ans-x" data-delopt="${oi}" title="Remove answer">×</button>` : ''}</div>`).join('')}
+            <button class="sb-ans add" id="add-opt">${svg(I.plus)}Add an answer</button></div>
+        </div></div>`;
+        $('#add-opt').onclick = () => { const score = {}; state.categories.forEach(cc => { score[cc.key] = 0; }); q.options.push({ label: '', score }); changed(); drawCanvas(); drawPanel(); setTimeout(() => { const e = $$('[data-edit^="o:' + qi + ':"]').pop(); e && e.focus(); }, 20); };
+        $$('[data-delopt]').forEach(x => x.onclick = () => { q.options.splice(+x.dataset.delopt, 1); changed(); drawCanvas(); drawPanel(); });
       }
-    }
-
-    function renderInsightSettings() {
-      const pc = state.profileCapture || {};
-      document.getElementById('pc-enabled').checked = !!pc.enabled;
-      document.getElementById('pc-age').checked = !!pc.captureAge;
-      document.getElementById('pc-gender').checked = !!pc.captureGender;
-      document.getElementById('pc-location').checked = !!pc.captureLocation;
-      document.getElementById('pc-social').checked = !!pc.captureSocialClass;
-      document.getElementById('pc-interest-q').value = pc.interestQuestion || '';
-      document.getElementById('pc-interest-opts').value = (pc.interestOptions || []).join(', ');
-      document.getElementById('pc-fields').style.display = pc.enabled ? 'block' : 'none';
-
-      document.getElementById('engagement-mode').checked = !!state.engagementMode;
-      document.getElementById('share-template').value = state.shareTemplate || '';
-    }
-
-    function renderCategories() {
-      const el = document.getElementById('categories');
-      el.innerHTML = state.categories.map((c, i) => `
-        <div class="cat-card">
-          <div class="cat-row">
-            <input type="text" value="${escapeAttr(c.label)}" data-cat-label="${i}" placeholder="Category name" />
-            <button class="icon-btn" data-remove-cat="${i}" title="Remove">×</button>
+    } else if (AREA === 'results') {
+      const t = state.tiers[TIER] || state.tiers[0]; if (!t) { c.innerHTML = ''; return; }
+      const hi = tierMax(TIER), score = Math.round((t.min + hi) / 2), color = TIER_COLORS[TIER % TIER_COLORS.length];
+      c.innerHTML = `<div class="sb-tier-tabs">${sortedTiers().map(({ t: x, i }) => `<button class="${i === TIER ? 'on' : ''}" data-tt="${i}"><i style="background:${TIER_COLORS[i % TIER_COLORS.length]}"></i>${esc(x.label)}</button>`).join('')}</div>
+        <div class="sb-page"><div class="sb-pad sb-result">
+          <div class="sb-brand-static">${b}</div>
+          <div class="sb-ring" style="--c:${color};--p:${score}"><div><b>${score}%</b><small>example score</small></div></div>
+          <div class="sb-tierlabel" style="color:${color}">${esc(t.label)}</div>
+          ${editable('t-head:' + TIER, t.headline || '', 'Headline (leave blank and Sieve writes it from their score)', 'sb-h2 center')}
+          ${editable('t-msg:' + TIER, t.message || '', 'Message (leave blank and Sieve writes a personal one)', 'sb-intro center', true)}
+          <div class="sb-catbars">${state.categories.map((cc, ci) => { const v = Math.max(8, Math.min(100, score + (ci % 2 ? -12 : 9) * (ci + 1) / 2)); return `<div><span>${esc(cc.label)}</span><div class="sb-bar"><i style="width:${v}%;background:${catColor(cc.key)}"></i></div></div>`; }).join('')}</div>
+          <div class="sb-cta ${t.recommendationUrl ? '' : 'off'}">
+            ${editable('t-rec:' + TIER, t.recommendation || '', 'Line above the button, e.g. Let\'s talk through your next move.', 'sb-cta-line', true)}
+            <span class="sb-cta-btn">${editable('t-btn:' + TIER, t.recommendationLabel || '', 'Book Now', '')}</span>
+            ${t.recommendationUrl ? '' : '<small class="sb-cta-note">Add a button link in the panel to show this to leads</small>'}
           </div>
-          <div class="cat-personalize">
-            <textarea data-cat-low="${i}" placeholder="Override the auto-written message for a LOW score here (optional)">${escapeHtml(c.lowMessage || '')}</textarea>
-            <textarea data-cat-high="${i}" placeholder="Override the auto-written message for a HIGH score here (optional)">${escapeHtml(c.highMessage || '')}</textarea>
-          </div>
+        </div></div>`;
+      $$('[data-tt]').forEach(x => x.onclick = () => { TIER = +x.dataset.tt; SEL = { type: 'tier', i: TIER }; drawSub(); drawCanvas(); drawPanel(); });
+    } else if (AREA === 'settings') { drawSettings(c); return; }
+    else if (AREA === 'share') { drawShare(c); return; }
+    bindEditables(c);
+    const cover = $('[data-pick="cover"]', c); if (cover) cover.onclick = () => $('#cover-upload-input').click();
+  }
+  function bindEditables(root) {
+    $$('[data-edit]', root).forEach(el => {
+      el.addEventListener('paste', (e) => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !el.dataset.multi) { e.preventDefault(); el.blur(); } });
+      el.addEventListener('focus', () => { const k = el.dataset.edit; if (k.startsWith('q:') || k.startsWith('o:')) { const qi = +k.split(':')[1]; if (SEL.type !== 'q' || SEL.i !== qi) { SEL = { type: 'q', i: qi }; drawSub(); drawPanel(); } } });
+      el.addEventListener('input', () => { setField(el.dataset.edit, el.innerText.replace(/\n$/, '')); });
+      el.addEventListener('blur', () => { if (!el.innerText.trim()) el.innerHTML = ''; });
+    });
+  }
+  function setField(key, v) {
+    const [k, a, b] = key.split(':');
+    if (k === 'title') { state.title = v; $('#top-title').value = v; }
+    else if (k === 'intro') state.intro = v;
+    else if (k === 'brand') state.brandName = v;
+    else if (k === 'q') { state.questions[+a].text = v; const o = $(`[data-oq="${a}"] .sb-ot`); if (o) o.textContent = v || 'New question'; }
+    else if (k === 'o') { state.questions[+a].options[+b].label = v; const m = $(`[data-mirror="o:${a}:${b}"]`); if (m) m.textContent = v || `Answer ${LETTERS[+b]}`; }
+    else if (k === 'cat-headline') state.categories[+a].headline = v;
+    else if (k === 't-head') state.tiers[+a].headline = v;
+    else if (k === 't-msg') state.tiers[+a].message = v;
+    else if (k === 't-rec') state.tiers[+a].recommendation = v;
+    else if (k === 't-btn') state.tiers[+a].recommendationLabel = v;
+    changed();
+  }
+
+  // the right: settings for the selection
+  function field(label, html, hint) { return `<label class="sb-f"><span>${label}</span>${html}${hint ? `<small>${hint}</small>` : ''}</label>`; }
+  function drawPanel() {
+    const p = $('#panel');
+    document.body.classList.toggle('no-panel', ['settings', 'share'].includes(AREA));
+    if (AREA === 'landing' || (AREA === 'questions' && SEL.type === 'landing')) {
+      p.innerHTML = `<div class="sb-ph"><b>Landing page</b><small>What leads see first</small></div>
+        <div class="sb-pb">
+          <div class="sb-group"><div class="sb-gt">Cover image</div>
+            <div class="sb-coverbox ${state.coverImage ? 'has' : ''}" id="cover-drop" tabindex="0" role="button">${state.coverImage ? `<img src="${esc(state.coverImage)}" alt="">` : `<span>${svg(I.img)}Drop an image or click to upload</span>`}</div>
+            <div class="sb-row">${state.coverImage ? '<button class="sb-link danger" id="cover-remove">Remove</button>' : ''}<button class="sb-link" id="cover-url-t">Use an image link</button></div>
+            <input id="f-cover-url" class="sb-in" placeholder="https://…" value="${esc(state.coverImage || '')}" hidden /></div>
+          <div class="sb-group"><div class="sb-gt">Intro ideas</div><div class="sb-chips">${['Answer a few quick questions and get your personal score in 2 minutes.', 'Find out where you stand, and exactly what to do next.', 'Free, private and instant.'].map(t => `<button class="sb-chip" data-intro="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>
+          <div class="sb-group"><div class="sb-gt">Tips</div><ul class="sb-tips"><li>Ask a question in the title: "How ready is your business to grow?"</li><li>Promise a result and a time: "Get your score in 2 minutes."</li></ul></div>
+        </div>`;
+      const drop = $('#cover-drop'), input = $('#cover-upload-input');
+      drop.onclick = () => input.click(); drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over');
+      drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) uploadCover(e.dataTransfer.files[0]); };
+      $('#cover-url-t').onclick = () => { const u = $('#f-cover-url'); u.hidden = !u.hidden; u.focus(); };
+      $('#f-cover-url').onchange = (e) => { state.coverImage = e.target.value.trim(); changed(); drawCanvas(); drawPanel(); };
+      const rm = $('#cover-remove'); if (rm) rm.onclick = () => { state.coverImage = ''; changed(); drawCanvas(); drawPanel(); };
+      $$('[data-intro]').forEach(x => x.onclick = () => { state.intro = x.dataset.intro; changed(); drawCanvas(); });
+      return;
+    }
+    if (AREA === 'questions' && SEL.type === 'cat') return panelCategory(p);
+    if (AREA === 'questions') return panelQuestion(p);
+    if (AREA === 'results') return panelTier(p);
+    p.innerHTML = '';
+  }
+  function panelQuestion(p) {
+    if (!state.questions.length) { p.innerHTML = `<div class="sb-ph"><b>Question</b></div><div class="sb-pb"><p class="sb-hint">Add a question to edit its scoring here.</p></div>`; return; }
+    const qi = Math.max(0, Math.min(SEL.i, state.questions.length - 1)), q = state.questions[qi], on = qCats(qi);
+    p.innerHTML = `<div class="sb-ph"><b>Question ${qi + 1}</b><div class="sb-ph-tools">
+        <button data-qa="up" title="Move up" ${qi === 0 ? 'disabled' : ''}>${svg(I.up)}</button><button data-qa="down" title="Move down" ${qi === state.questions.length - 1 ? 'disabled' : ''}>${svg(I.down)}</button>
+        <button data-qa="dup" title="Duplicate">${svg(I.copy)}</button><button data-qa="del" title="Delete" class="danger">${svg(I.trash)}</button></div></div>
+      <div class="sb-pb">
+        <div class="sb-group"><div class="sb-gt">Scores towards</div>
+          <div class="sb-chips">${state.categories.map(c => { const isOn = on.some(x => x.key === c.key); return `<button class="sb-chip tog ${isOn ? 'on' : ''}" data-tcat="${c.key}" style="--c:${catColor(c.key)}">${isOn ? '✓ ' : '+ '}${esc(c.label)}</button>`; }).join('')}</div>
+          <small class="sb-hint">Pick the categories this question tells you about.</small></div>
+        ${on.length ? `<div class="sb-group"><div class="sb-gt-row"><div class="sb-gt">Points per answer</div><div class="sb-fill"><button data-fill="desc" title="First answer best">Best → worst</button><button data-fill="asc" title="Last answer best">Worst → best</button></div></div>
+          <div class="sb-matrix" style="--n:${on.length}">
+            <div class="sb-mrow head"><span></span>${on.map(c => `<span title="${esc(c.label)}"><i style="background:${catColor(c.key)}"></i>${esc(c.label)}</span>`).join('')}</div>
+            ${q.options.map((o, oi) => `<div class="sb-mrow"><span class="sb-mlabel"><b>${LETTERS[oi]}</b><em data-mirror="o:${qi}:${oi}">${esc(o.label) || 'Answer ' + LETTERS[oi]}</em></span>${on.map(c => { const v = Number(o.score[c.key] || 0); return `<span class="sb-step"><button data-st="${oi}:${c.key}:-1" aria-label="Less">−</button><input type="number" min="0" max="10" value="${v}" data-pts="${oi}:${c.key}" aria-label="Points for ${LETTERS[oi]} in ${esc(c.label)}" /><button data-st="${oi}:${c.key}:1" aria-label="More">+</button></span>`; }).join('')}</div>`).join('')}
+          </div><small class="sb-hint">0 to 10. Higher means a better answer for that category.</small></div>` : `<div class="sb-callout">Pick at least one category above so this question counts towards the score.</div>`}
+        <div class="sb-group"><div class="sb-gt">Answer tips <span class="sb-opt">Optional</span></div><small class="sb-hint" style="margin-bottom:8px">Sieve writes a tip for each answer. Add your own to override it.</small>
+          ${q.options.map((o, oi) => { const k = qi + ':' + oi, open = openTips.has(k) || (o.insight && o.insight.trim());
+            return open ? `<label class="sb-f"><span>${LETTERS[oi]}. ${esc(o.label || 'Answer')}</span><textarea rows="2" class="sb-in" data-tip="${oi}" placeholder="What should someone who picks this read?">${esc(o.insight || '')}</textarea></label>` : `<button class="sb-link small" data-opentip="${k}">+ Tip for ${LETTERS[oi]}. ${esc((o.label || 'Answer').slice(0, 30))}</button>`; }).join('')}</div>
+      </div>`;
+    const set = (oi, key, v) => { q.options[oi].score[key] = Math.max(0, Math.min(10, Math.round(Number(v) || 0))); changed(); };
+    $$('[data-pts]', p).forEach(inp => inp.onchange = () => { const [oi, key] = inp.dataset.pts.split(':'); set(+oi, key, inp.value); inp.value = q.options[+oi].score[key]; drawCanvas(); drawSub(); });
+    $$('[data-st]', p).forEach(b => b.onclick = () => { const [oi, key, d] = b.dataset.st.split(':'); set(+oi, key, Number(q.options[+oi].score[key] || 0) + Number(d)); const inp = b.parentElement.querySelector('input'); inp.value = q.options[+oi].score[key]; drawCanvas(); drawSub(); });
+    $$('[data-fill]', p).forEach(b => b.onclick = () => { const n = q.options.length; q.options.forEach((o, oi) => { const r = n > 1 ? (b.dataset.fill === 'desc' ? (n - 1 - oi) / (n - 1) : oi / (n - 1)) : 1; on.forEach(c => { o.score[c.key] = Math.round(r * 10); }); }); changed(); drawAll(); showToast('Points filled in', 'success'); });
+    $$('[data-tcat]', p).forEach(b => b.onclick = () => {
+      const key = b.dataset.tcat, isOn = on.some(x => x.key === key);
+      activeCats[qi] = new Set(activeCats[qi] || []);
+      if (isOn) { q.options.forEach(o => { o.score[key] = 0; }); activeCats[qi].delete(key); }
+      else { activeCats[qi].add(key); const n = q.options.length; q.options.forEach((o, oi) => { o.score[key] = n > 1 ? Math.round(((n - 1 - oi) / (n - 1)) * 10) : 10; }); }
+      changed(); drawAll();
+    });
+    $$('[data-opentip]', p).forEach(b => b.onclick = () => { openTips.add(b.dataset.opentip); drawPanel(); setTimeout(() => $(`[data-tip="${b.dataset.opentip.split(':')[1]}"]`)?.focus(), 20); });
+    $$('[data-tip]', p).forEach(t => t.oninput = () => { q.options[+t.dataset.tip].insight = t.value; changed(); });
+    $$('[data-qa]', p).forEach(b => b.onclick = async () => {
+      const a = b.dataset.qa, qs = state.questions;
+      if (a === 'up' || a === 'down') { const j = a === 'up' ? qi - 1 : qi + 1; [qs[j], qs[qi]] = [qs[qi], qs[j]]; SEL.i = j; }
+      if (a === 'dup') { qs.splice(qi + 1, 0, JSON.parse(JSON.stringify(q))); SEL.i = qi + 1; showToast('Question duplicated', 'success'); }
+      if (a === 'del') { if (qs.length <= 1) return showToast('A scorecard needs at least one question.'); if (!(await showConfirm(`Delete question ${qi + 1}?`))) return; qs.splice(qi, 1); SEL.i = Math.min(qi, qs.length - 1); }
+      changed(); drawAll();
+    });
+  }
+  function panelCategory(p) {
+    const c = state.categories[SEL.i]; if (!c) return;
+    p.innerHTML = `<div class="sb-ph"><b><i class="sb-dot" style="background:${catColor(c.key)}"></i>Category</b><div class="sb-ph-tools"><button data-delcat title="Delete category" class="danger">${svg(I.trash)}</button></div></div>
+      <div class="sb-pb">
+        ${field('Name', `<input id="cat-name" class="sb-in" value="${esc(c.label)}" />`, 'Shown as a bar on every lead\'s result.')}
+        ${field('Headline <span class="sb-opt">Optional</span>', `<input id="cat-head" class="sb-in" value="${esc(c.headline || '')}" placeholder="Leave blank and Sieve writes it" />`)}
+        ${field('If they score low <span class="sb-opt">Optional</span>', `<textarea id="cat-low" rows="3" class="sb-in" placeholder="Leave blank and Sieve writes it">${esc(c.lowMessage || '')}</textarea>`)}
+        ${field('If they score high <span class="sb-opt">Optional</span>', `<textarea id="cat-high" rows="3" class="sb-in" placeholder="Leave blank and Sieve writes it">${esc(c.highMessage || '')}</textarea>`)}
+        <div class="sb-group"><div class="sb-gt">Questions scoring here</div><div class="sb-qlinks">${state.questions.map((q, qi) => qCats(qi).some(x => x.key === c.key) ? `<button class="sb-link" data-goq="${qi}">${qi + 1}. ${esc((q.text || 'New question').slice(0, 48))}</button>` : '').join('') || '<small class="sb-hint">None yet. Open a question and tick this category.</small>'}</div></div>
+      </div>`;
+    $('#cat-name').oninput = (e) => { c.label = e.target.value; changed(); $(`[data-cat="${SEL.i}"] span`) && ($(`[data-cat="${SEL.i}"] span`).textContent = c.label); };
+    $('#cat-name').onchange = () => drawAll();
+    $('#cat-head').oninput = (e) => { c.headline = e.target.value; changed(); };
+    $('#cat-head').onchange = () => drawCanvas();
+    $('#cat-low').oninput = (e) => { c.lowMessage = e.target.value; changed(); };
+    $('#cat-high').oninput = (e) => { c.highMessage = e.target.value; changed(); };
+    $$('[data-goq]', p).forEach(b => b.onclick = () => { SEL = { type: 'q', i: +b.dataset.goq }; drawAll(); });
+    $('[data-delcat]', p).onclick = async () => {
+      if (state.categories.length <= 1) return showToast('A scorecard needs at least one category.');
+      if (!(await showConfirm(`Delete "${c.label}"? Its points on every answer are removed too.`))) return;
+      state.categories.splice(SEL.i, 1); state.questions.forEach(q => q.options.forEach(o => { delete o.score[c.key]; }));
+      SEL = { type: 'q', i: 0 }; changed(); drawAll();
+    };
+  }
+  function panelTier(p) {
+    const t = state.tiers[TIER]; if (!t) return;
+    const s = sortedTiers(), lowest = s[s.length - 1].i === TIER;
+    p.innerHTML = `<div class="sb-ph"><b><i class="sb-dot" style="background:${TIER_COLORS[TIER % TIER_COLORS.length]}"></i>Tier</b><div class="sb-ph-tools">${state.tiers.length > 2 ? `<button data-deltier title="Delete tier" class="danger">${svg(I.trash)}</button>` : ''}</div></div>
+      <div class="sb-pb">
+        <div class="sb-two">${field('Name', `<input id="t-label" class="sb-in" value="${esc(t.label)}" />`)}${field('Starts at', `<div class="sb-pct"><input id="t-min" type="number" min="0" max="99" class="sb-in" value="${t.min}" ${lowest ? 'disabled' : ''} /><span>%</span></div>`, lowest ? 'The lowest tier always starts at 0%.' : `Up to ${tierMax(TIER)}%`)}</div>
+        <div class="sb-group"><div class="sb-gt">Button for this tier</div>
+          ${field('Button link', `<input id="t-url" type="url" class="sb-in" value="${esc(t.recommendationUrl || '')}" placeholder="https://wa.me/234… or your booking page" />`, 'No link means no button for this tier.')}
+          ${field('Button text', `<input id="t-btn" class="sb-in" value="${esc(t.recommendationLabel || '')}" placeholder="Book Now" />`)}
+          <div class="sb-chips">${['Book a free call', 'Chat on WhatsApp', 'See our packages', 'Get a quote'].map(x => `<button class="sb-chip" data-btnq="${esc(x)}">${esc(x)}</button>`).join('')}</div>
         </div>
-      `).join('');
-      el.querySelectorAll('[data-cat-label]').forEach(input => {
-        input.addEventListener('input', (e) => {
-          state.categories[+e.target.dataset.catLabel].label = e.target.value;
-        });
-      });
-      el.querySelectorAll('[data-cat-low]').forEach(ta => {
-        ta.addEventListener('input', (e) => { state.categories[+e.target.dataset.catLow].lowMessage = e.target.value; });
-      });
-      el.querySelectorAll('[data-cat-high]').forEach(ta => {
-        ta.addEventListener('input', (e) => { state.categories[+e.target.dataset.catHigh].highMessage = e.target.value; });
-      });
-      el.querySelectorAll('[data-remove-cat]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          if (state.categories.length <= 1) return showToast('A scorecard needs at least one category.');
-          const idx = +e.target.dataset.removeCat;
-          const removedKey = state.categories[idx].key;
-          state.categories.splice(idx, 1);
-          state.questions.forEach(q => q.options.forEach(o => { delete o.score[removedKey]; }));
-          render();
-        });
-      });
+        <div class="sb-callout soft">The headline, message and line above the button are edited right on the page. Leave any blank and Sieve writes it for each lead.</div>
+      </div>`;
+    $('#t-label').oninput = (e) => { t.label = e.target.value; changed(); };
+    $('#t-label').onchange = () => { drawSub(); drawCanvas(); };
+    const mi = $('#t-min');
+    mi.onchange = () => {
+      const pos = s.findIndex(x => x.i === TIER), above = pos > 0 ? s[pos - 1].t.min : 101, below = pos < s.length - 1 ? s[pos + 1].t.min : -1;
+      let v = Math.round(Number(mi.value) || 0);
+      if (v <= below) { v = below + 1; showToast(`Must be above ${below}% (the tier below).`, 'info'); }
+      if (v >= above) { v = above - 1; showToast(`Must be below ${above}% (the tier above).`, 'info'); }
+      t.min = v; mi.value = v; changed(); drawSub(); drawCanvas(); drawPanel();
+    };
+    $('#t-url').onchange = (e) => { let v = e.target.value.trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; t.recommendationUrl = v; e.target.value = v; changed(); drawSub(); drawCanvas(); };
+    $('#t-btn').oninput = (e) => { t.recommendationLabel = e.target.value; changed(); };
+    $('#t-btn').onchange = () => drawCanvas();
+    $$('[data-btnq]', p).forEach(b => b.onclick = () => { t.recommendationLabel = b.dataset.btnq; $('#t-btn').value = b.dataset.btnq; changed(); drawCanvas(); });
+    const dt = $('[data-deltier]', p); if (dt) dt.onclick = async () => {
+      if (!(await showConfirm(`Delete the "${t.label}" tier? Leads in its range move to the tier below.`))) return;
+      state.tiers.splice(TIER, 1);
+      const ss = sortedTiers(); ss[ss.length - 1].t.min = 0;
+      TIER = ss[0].i; SEL = { type: 'tier', i: TIER }; changed(); drawAll();
+    };
+  }
+  function addTier() {
+    // split the widest tier in half
+    const s = sortedTiers(); let best = s[0], bw = -1;
+    s.forEach(x => { const w = tierMax(x.i) - x.t.min; if (w > bw) { bw = w; best = x; } });
+    // the new tier takes the lower half of the widest range, so the tiers above it (and their buttons) stay put
+    const mid = Math.round((best.t.min + tierMax(best.i)) / 2) + 1;
+    if (mid <= best.t.min || mid > tierMax(best.i)) return showToast('There is no room for another tier.', 'info');
+    const lowStart = best.t.min; best.t.min = mid;
+    state.tiers.push({ min: lowStart, label: 'New tier' });
+    TIER = state.tiers.length - 1; SEL = { type: 'tier', i: TIER }; changed(); drawAll();
+    setTimeout(() => { const f = $('#t-label'); f && (f.focus(), f.select()); }, 30);
+  }
+  function addQuestion() {
+    const score = {}; state.categories.forEach(c => { score[c.key] = 0; });
+    state.questions.push({ text: '', options: ['Option A', 'Option B', 'Option C'].map(label => ({ label, score: { ...score } })) });
+    const qi = state.questions.length - 1;
+    activeCats[qi] = new Set(state.categories.slice(0, 1).map(c => c.key));
+    state.questions[qi].options.forEach((o, oi) => { state.categories.slice(0, 1).forEach(c => { o.score[c.key] = [10, 5, 0][oi]; }); });
+    AREA = 'questions'; SEL = { type: 'q', i: qi }; drawAll();
+    setTimeout(() => { const t = $(`[data-edit="q:${qi}"]`); t && t.focus(); }, 30);
+  }
+  async function uploadCover(file) {
+    try {
+      showToast('Uploading cover…', 'info');
+      const form = new FormData(); form.append('cover', file);
+      const res = await fetch('/api/scorecards/upload-cover', { method: 'POST', credentials: 'include', body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Upload failed.');
+      state.coverImage = data.url; changed(); drawCanvas(); drawPanel(); showToast('Cover image added', 'success');
+    } catch (err) { showToast(err.message || 'Upload failed.'); }
+  }
+  $('#cover-upload-input').onchange = (e) => { const f = e.target.files[0]; if (f) uploadCover(f); e.target.value = ''; };
+
+  /* ---------- settings ---------- */
+  function drawSettings(c) {
+    const pc = state.profileCapture || (state.profileCapture = {});
+    const fields = [['captureAge', 'Age range'], ['captureGender', 'Gender'], ['captureLocation', 'State (location)'], ['captureSocialClass', 'Income bracket']];
+    c.innerHTML = `<div class="sb-doc">
+      <h1>Settings</h1>
+      <div class="sb-card"><div class="sb-card-h"><div><h3>Lead details</h3><p>Before their result, every lead gives their first name, last name, phone number and email.</p></div><span class="sb-badge">Always on</span></div></div>
+      <div class="sb-card ${pc.enabled ? 'on' : ''}"><div class="sb-card-h"><div><h3>Audience insights <span class="sb-tag">Signal Desk</span></h3><p>Ask a few profile questions for a brand campaign. Powers the Brand Campaign Insight Report.</p></div><label class="sb-switch"><input type="checkbox" id="pc-enabled" ${pc.enabled ? 'checked' : ''}><span></span></label></div>
+        ${pc.enabled ? `<div class="sb-card-b"><div class="sb-gt">What to ask</div><div class="sb-chips">${fields.map(([k, l]) => `<button class="sb-chip tog ${pc[k] ? 'on' : ''}" data-pc="${k}" style="--c:#3B5BFD">${pc[k] ? '✓ ' : '+ '}${l}</button>`).join('')}</div>
+          ${field('Interest question <span class="sb-opt">Optional</span>', `<input id="pc-q" class="sb-in" value="${esc(pc.interestQuestion || '')}" placeholder="e.g. Which best describes your interest in [Brand]?" />`)}
+          <div class="sb-f"><span>Answer choices</span><div class="sb-tags">${(pc.interestOptions || []).map((t, i) => `<span class="sb-tagx">${esc(t)}<button data-rmtag="${i}">×</button></span>`).join('')}<input id="pc-tag" placeholder="${(pc.interestOptions || []).length ? 'Add another…' : 'Type a choice and press Enter'}" /></div></div></div>` : ''}</div>
+      <div class="sb-card ${state.engagementMode ? 'on' : ''}"><div class="sb-card-h"><div><h3>Engagement campaign</h3><p>Shows leads their completion time and a shareable result, and adds time-spent stats to your report.</p></div><label class="sb-switch"><input type="checkbox" id="eng" ${state.engagementMode ? 'checked' : ''}><span></span></label></div>
+        ${state.engagementMode ? `<div class="sb-card-b">${field('Share message <span class="sb-opt">Optional</span>', `<textarea id="share-t" rows="2" class="sb-in" placeholder="I scored {score}% on {title}! Check yours: {link}">${esc(state.shareTemplate || '')}</textarea>`)}<div class="sb-chips">${['{score}', '{title}', '{brand}', '{tier}', '{link}'].map(t => `<button class="sb-chip mono" data-token="${t}">${t}</button>`).join('')}</div></div>` : ''}</div>
+    </div>`;
+    $('#pc-enabled').onchange = (e) => { pc.enabled = e.target.checked; changed(); drawCanvas(); };
+    $$('[data-pc]').forEach(b => b.onclick = () => { pc[b.dataset.pc] = !pc[b.dataset.pc]; changed(); drawCanvas(); });
+    const q = $('#pc-q'); if (q) q.oninput = (e) => { pc.interestQuestion = e.target.value; changed(); };
+    const tg = $('#pc-tag'); if (tg) tg.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ',') && tg.value.trim()) { e.preventDefault(); (pc.interestOptions ||= []).push(tg.value.trim().replace(/,$/, '')); changed(); drawCanvas(); setTimeout(() => $('#pc-tag')?.focus(), 10); } };
+    $$('[data-rmtag]').forEach(b => b.onclick = () => { pc.interestOptions.splice(+b.dataset.rmtag, 1); changed(); drawCanvas(); });
+    $('#eng').onchange = (e) => { state.engagementMode = e.target.checked; changed(); drawCanvas(); };
+    const st = $('#share-t'); if (st) st.oninput = (e) => { state.shareTemplate = e.target.value; changed(); };
+    $$('[data-token]').forEach(b => b.onclick = () => { const t = $('#share-t'), s = t.selectionStart ?? t.value.length; t.value = t.value.slice(0, s) + b.dataset.token + t.value.slice(t.selectionEnd ?? s); state.shareTemplate = t.value; t.focus(); changed(); });
+  }
+
+  /* ---------- publish and share ---------- */
+  function checks() {
+    return [
+      ['Give it a title', !!state.title.trim(), 'landing'],
+      ['Write a short intro', !!(state.intro || '').trim(), 'landing'],
+      ['Every question has text and 2+ answers', state.questions.length > 0 && state.questions.every(q => q.text.trim() && q.options.length >= 2 && q.options.every(o => o.label.trim())), 'questions'],
+      ['Every question scores towards a category', state.questions.every((q, i) => qCats(i).length > 0), 'questions'],
+      ['A button for your top tier', !!sortedTiers()[0]?.t.recommendationUrl, 'results', true],
+    ];
+  }
+  function drawShare(c) {
+    const list = checks(), blocking = list.filter(x => !x[1] && !x[3]);
+    if (!state.published) {
+      c.innerHTML = `<div class="sb-doc"><h1>Publish</h1><p class="sb-lead">Go live to get a link for WhatsApp, your bio, ads or a QR code.</p>
+        <div class="sb-card"><div class="sb-checks">${list.map(([t, ok, a, opt]) => `<button class="sb-check ${ok ? 'ok' : ''}" data-fix="${a}"><span class="sb-tick">${ok ? '✓' : ''}</span><span>${t}${opt ? ' <span class="sb-opt">Recommended</span>' : ''}</span>${ok ? '' : '<b>Fix →</b>'}</button>`).join('')}</div></div>
+        <div class="sb-golive"><div><h3>${blocking.length ? 'Almost there' : 'Ready to go live'}</h3><p>${blocking.length ? 'Finish the items above to publish.' : 'You can unpublish any time.'}</p></div><button class="sb-btn primary big" id="publish-btn" ${blocking.length ? 'disabled' : ''}>Publish scorecard</button></div></div>`;
+      $$('[data-fix]').forEach(b => b.onclick = () => go(b.dataset.fix));
+      const pb = $('#publish-btn'); if (pb) pb.onclick = () => togglePublish(true);
+      return;
     }
+    const url = liveUrl(), title = state.title;
+    const wa = `Hi! ${title} — take this quick assessment from ${(state.brandName && state.brandName.trim()) || 'us'} and get your results instantly: ${url}`;
+    const embed = `<iframe src="${url}&embed=1" style="width:100%;max-width:520px;height:640px;border:0;" title="${title.replace(/"/g, '&quot;')}"></iframe>`;
+    c.innerHTML = `<div class="sb-doc"><h1>Your scorecard is live 🎉</h1><p class="sb-lead">Share it anywhere. New leads land in your dashboard, already scored.</p>
+      <div class="sb-card live"><div class="sb-gt">Your link</div><div class="sb-copy"><input id="share-link" value="${esc(url)}" readonly /><button class="sb-btn primary" data-copy="share-link">Copy</button></div>
+        <div class="sb-sharegrid">
+          <a class="sb-share wa" href="https://wa.me/?text=${encodeURIComponent(wa)}" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="sb-share" href="${esc(url)}" target="_blank" rel="noopener">Open live page</a>
+          <a class="sb-share" href="/report.html?id=${scorecardId}">View report</a>
+          <a class="sb-share" href="/leads.html?id=${scorecardId}">See leads</a></div></div>
+      <div class="sb-twocards"><div class="sb-card"><div class="sb-gt">WhatsApp Status or broadcast</div><textarea id="wa-text" class="sb-in" rows="4" readonly>${esc(wa)}</textarea><button class="sb-btn ghost" data-copy="wa-text">Copy message</button></div>
+        <div class="sb-card"><div class="sb-gt">QR code</div><img src="/api/scorecards/${scorecardId}/qr.png" alt="QR code" width="130" height="130" class="sb-qr" /><a class="sb-btn ghost" href="/api/scorecards/${scorecardId}/qr.png" download>Download QR</a></div></div>
+      <details class="sb-card"><summary>Embed on your website</summary><div class="sb-copy" style="margin-top:10px"><input id="embed-code" value="${esc(embed)}" readonly /><button class="sb-btn ghost" data-copy="embed-code">Copy</button></div></details>
+      <div class="sb-unpub"><span>Unpublishing stops new leads until you publish again.</span><button class="sb-link danger" id="unpublish">Unpublish</button></div></div>`;
+    $$('[data-copy]').forEach(b => b.onclick = async () => { const el = $('#' + b.dataset.copy); try { await navigator.clipboard.writeText(el.value); } catch { el.select(); document.execCommand('copy'); } showToast('Copied', 'success'); });
+    $('#unpublish').onclick = async () => { if (await showConfirm('Unpublish this scorecard? The link stops accepting new leads until you publish again.')) togglePublish(false); };
+  }
+  async function togglePublish(on) {
+    try {
+      await save();
+      const { scorecard: u } = await api(`/scorecards/${scorecardId}/publish`, { method: 'POST', body: { published: on } });
+      state.published = u.published; state.slug = u.slug;
+      if (on) showToast('Your scorecard is live', 'success');
+      go('share');
+    } catch (ex) { showToast(ex.message || 'Could not change the publish status.'); }
+  }
 
-    const expandedInsights = new Set(); // "qi:oi" — purely UI state, not saved
+  /* ---------- top bar ---------- */
+  $('#top-title').oninput = (e) => { state.title = e.target.value; changed(); };
+  $('#publish-top').onclick = () => go('share');
+  $('#preview-btn').onclick = async () => { const win = window.open('', '_blank'); await save(); if (win) win.location.href = `/take/index.html?slug=${state.slug}&preview=1`; };
+  window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (AREAS.some(a => a.key === k) && k !== AREA) go(k); });
 
-    function renderQuestions() {
-      const el = document.getElementById('questions');
-      el.innerHTML = state.questions.map((q, qi) => `
-        <div class="question-card">
-          <div class="question-card-top">
-            <input type="text" value="${escapeAttr(q.text)}" data-q-text="${qi}" placeholder="Question text" />
-            <button class="icon-btn" data-remove-q="${qi}" title="Remove question">×</button>
-          </div>
-          ${q.options.map((o, oi) => `
-            <div class="option-row">
-              <input type="text" class="opt-label" value="${escapeAttr(o.label)}" data-opt-label="${qi}:${oi}" placeholder="Answer option" />
-              ${state.categories.map(c => `
-                <div class="option-score">
-                  <label>${escapeHtml(c.label.slice(0, 10))}</label>
-                  <input type="number" min="0" max="10" value="${o.score[c.key] || 0}" data-opt-score="${qi}:${oi}:${c.key}" />
-                </div>
-              `).join('')}
-              <button class="icon-btn" data-remove-opt="${qi}:${oi}" title="Remove option">×</button>
-            </div>
-            ${expandedInsights.has(`${qi}:${oi}`) || (o.insight && o.insight.trim()) ? `
-              <textarea class="opt-insight" data-opt-insight="${qi}:${oi}" placeholder="Override the auto-written insight for this answer (optional)">${escapeHtml(o.insight || '')}</textarea>
-            ` : `<button class="insight-toggle" data-insight-toggle="${qi}:${oi}" type="button">+ Override the auto-written insight for this answer</button>`}
-          `).join('')}
-          <button class="add-row-btn" data-add-opt="${qi}">+ Add option</button>
-        </div>
-      `).join('');
-
-      el.querySelectorAll('[data-q-text]').forEach(input => {
-        input.addEventListener('input', (e) => { state.questions[+e.target.dataset.qText].text = e.target.value; });
-      });
-      el.querySelectorAll('[data-opt-label]').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const [qi, oi] = e.target.dataset.optLabel.split(':').map(Number);
-          state.questions[qi].options[oi].label = e.target.value;
-        });
-      });
-      el.querySelectorAll('[data-opt-score]').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const [qi, oi, key] = e.target.dataset.optScore.split(':');
-          state.questions[+qi].options[+oi].score[key] = Number(e.target.value) || 0;
-        });
-      });
-      el.querySelectorAll('[data-opt-insight]').forEach(ta => {
-        ta.addEventListener('input', (e) => {
-          const [qi, oi] = e.target.dataset.optInsight.split(':').map(Number);
-          state.questions[qi].options[oi].insight = e.target.value;
-        });
-      });
-      el.querySelectorAll('[data-insight-toggle]').forEach(btn => {
-        btn.addEventListener('click', (e) => { expandedInsights.add(e.target.dataset.insightToggle); render(); });
-      });
-      el.querySelectorAll('[data-remove-q]').forEach(btn => {
-        btn.addEventListener('click', (e) => { state.questions.splice(+e.target.dataset.removeQ, 1); render(); });
-      });
-      el.querySelectorAll('[data-remove-opt]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const [qi, oi] = e.target.dataset.removeOpt.split(':').map(Number);
-          if (state.questions[qi].options.length <= 2) return showToast('A question needs at least two options.');
-          state.questions[qi].options.splice(oi, 1);
-          render();
-        });
-      });
-      el.querySelectorAll('[data-add-opt]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const qi = +e.target.dataset.addOpt;
-          const score = {}; state.categories.forEach(c => { score[c.key] = 0; });
-          state.questions[qi].options.push({ label: 'New option', score });
-          render();
-        });
-      });
-    }
-
-    function renderTiers() {
-      const el = document.getElementById('tiers');
-      el.innerHTML = state.tiers.map((t, i) => `
-        <div class="tier-card">
-          <div class="tier-card-label">${escapeHtml(t.label)} <span class="tier-card-min">${t.min}%+</span></div>
-          <div class="field"><label>Headline shown to them (optional — auto-written from their score if left blank)</label>
-            <input type="text" data-tier-headline="${i}" value="${escapeAttr(t.headline || '')}" placeholder="e.g. You're ready to move" /></div>
-          <div class="field"><label>Message (optional — auto-written if left blank)</label>
-            <textarea data-tier-message="${i}" placeholder="A sentence or two that speaks directly to someone who lands in this tier.">${escapeHtml(t.message || '')}</textarea></div>
-          <div class="field"><label>Recommended next step — the invitation shown with this (optional — no CTA block shows unless you write one)</label>
-            <textarea data-tier-rec="${i}" placeholder="Tie this to what you actually sell — e.g. 'Let's talk through what this means for you and map out your next move.'">${escapeHtml(t.recommendation || '')}</textarea></div>
-          <div class="field"><label>Link</label>
-            <input type="url" data-tier-url="${i}" value="${escapeAttr(t.recommendationUrl || '')}" placeholder="https://" /></div>
-          <div class="field"><label>Button text (optional — defaults to "Book Now")</label>
-            <input type="text" data-tier-label="${i}" value="${escapeAttr(t.recommendationLabel || '')}" placeholder="Book Now" /></div>
-        </div>
-      `).join('');
-      el.querySelectorAll('[data-tier-headline]').forEach(input => input.addEventListener('input', e => { state.tiers[+e.target.dataset.tierHeadline].headline = e.target.value; }));
-      el.querySelectorAll('[data-tier-message]').forEach(ta => ta.addEventListener('input', e => { state.tiers[+e.target.dataset.tierMessage].message = e.target.value; }));
-      el.querySelectorAll('[data-tier-rec]').forEach(ta => ta.addEventListener('input', e => { state.tiers[+e.target.dataset.tierRec].recommendation = e.target.value; }));
-      el.querySelectorAll('[data-tier-url]').forEach(input => input.addEventListener('input', e => { state.tiers[+e.target.dataset.tierUrl].recommendationUrl = e.target.value; }));
-      el.querySelectorAll('[data-tier-label]').forEach(input => input.addEventListener('input', e => { state.tiers[+e.target.dataset.tierLabel].recommendationLabel = e.target.value; }));
-    }
-
-    function renderPublish() {
-      const btn = document.getElementById('publish-btn');
-      const hint = document.getElementById('publish-hint');
-      const shareBox = document.getElementById('share-box');
-      const shareLink = document.getElementById('share-link');
-      const embedBlock = document.getElementById('embed-block');
-      const embedCode = document.getElementById('embed-code');
-      const qrBlock = document.getElementById('qr-block');
-      const qrImage = document.getElementById('qr-image');
-      const qrDownload = document.getElementById('qr-download');
-      const reportBlock = document.getElementById('report-link-block');
-      const reportLink = document.getElementById('report-link');
-      const whatsappBlock = document.getElementById('whatsapp-share-block');
-      const whatsappShareBtn = document.getElementById('whatsapp-share-btn');
-      const whatsappBroadcastText = document.getElementById('whatsapp-broadcast-text');
-
-      btn.textContent = state.published ? 'Unpublish' : 'Publish';
-      btn.className = state.published ? 'btn btn-ghost' : 'btn btn-accent';
-      hint.textContent = state.published
-        ? 'This scorecard is live — anyone with the link can take it.'
-        : 'Publish to get a live link you can share with leads.';
-      shareBox.style.display = state.published ? 'flex' : 'none';
-      embedBlock.style.display = state.published ? 'block' : 'none';
-      qrBlock.style.display = state.published ? 'block' : 'none';
-      reportBlock.style.display = state.published ? 'block' : 'none';
-      whatsappBlock.style.display = state.published ? 'block' : 'none';
-
-      if (state.published) {
-        const liveUrl = `${location.origin}/take/index.html?slug=${state.slug}`;
-        shareLink.value = liveUrl;
-        embedCode.value = `<iframe src="${liveUrl}&embed=1" style="width:100%;max-width:520px;height:640px;border:0;" title="${state.title.replace(/"/g, '&quot;')}"></iframe>`;
-        reportLink.href = `/report.html?id=${scorecardId}`;
-        const qrUrl = `/api/scorecards/${scorecardId}/qr.png`;
-        qrImage.src = qrUrl;
-        qrDownload.href = qrUrl;
-
-        const brand = (state.brandName && state.brandName.trim()) || 'us';
-        const waMessage = `Hi! ${state.title} — take this quick assessment from ${brand} and get your results instantly: ${liveUrl}`;
-        whatsappShareBtn.href = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
-        whatsappBroadcastText.value = waMessage;
-      }
-
-      const previewBtn = document.getElementById('preview-btn');
-      previewBtn.title = state.published ? 'Open the live scorecard' : 'Preview this draft — nothing you submit here is saved as a lead';
-    }
-
-    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-    function escapeAttr(s) { return escapeHtml(s); }
-
-    async function save() {
-      const statusEls = [document.getElementById('save-status'), document.getElementById('save-status-bottom')];
-      statusEls.forEach(el => el.textContent = 'Saving…');
-      try {
-        const { scorecard } = await api(`/scorecards/${scorecardId}`, {
-          method: 'PUT',
-          body: {
-            title: state.title, intro: state.intro, categories: state.categories, questions: state.questions,
-            tiers: state.tiers, brandName: state.brandName, coverImage: state.coverImage, profileCapture: state.profileCapture,
-            engagementMode: state.engagementMode, shareTemplate: state.shareTemplate,
-          },
-        });
-        state = { ...state, ...scorecard };
-        statusEls.forEach(el => el.textContent = 'Saved ✓');
-        setTimeout(() => statusEls.forEach(el => el.textContent = ''), 2000);
-      } catch (ex) {
-        statusEls.forEach(el => el.textContent = '');
-        showToast(ex.message);
-      }
-    }
-
-    (async () => {
-      const user = await requireUser();
-      if (!user) return;
-
-      const { scorecard } = await api(`/scorecards/${scorecardId}`);
-      state = scorecard;
-      if (!state.categories.length) state.categories = [{ key: 'fit', label: 'Fit' }];
-      render();
-
-      document.getElementById('title').addEventListener('input', (e) => { state.title = e.target.value; });
-      document.getElementById('intro').addEventListener('input', (e) => { state.intro = e.target.value; });
-      document.getElementById('brand-name').addEventListener('input', (e) => { state.brandName = e.target.value; });
-      document.getElementById('cover-image').addEventListener('input', (e) => { state.coverImage = e.target.value; renderCoverPreview(); });
-
-      const coverUploadBtn = document.getElementById('cover-upload-btn');
-      const coverUploadInput = document.getElementById('cover-upload-input');
-      const coverUploadStatus = document.getElementById('cover-upload-status');
-      coverUploadBtn.addEventListener('click', () => coverUploadInput.click());
-      coverUploadInput.addEventListener('change', async () => {
-        const file = coverUploadInput.files[0];
-        if (!file) return;
-        coverUploadStatus.textContent = 'Uploading…';
-        coverUploadBtn.disabled = true;
-        try {
-          const form = new FormData();
-          form.append('cover', file);
-          const res = await fetch('/api/scorecards/upload-cover', { method: 'POST', credentials: 'include', body: form });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error || 'Upload failed.');
-          state.coverImage = data.url;
-          document.getElementById('cover-image').value = data.url;
-          renderCoverPreview();
-          coverUploadStatus.textContent = 'Uploaded ✓';
-        } catch (err) {
-          coverUploadStatus.textContent = err.message || 'Upload failed.';
-        } finally {
-          coverUploadBtn.disabled = false;
-          coverUploadInput.value = '';
-        }
-      });
-
-      document.getElementById('pc-enabled').addEventListener('change', (e) => {
-        state.profileCapture.enabled = e.target.checked;
-        document.getElementById('pc-fields').style.display = e.target.checked ? 'block' : 'none';
-      });
-      document.getElementById('pc-age').addEventListener('change', (e) => { state.profileCapture.captureAge = e.target.checked; });
-      document.getElementById('pc-gender').addEventListener('change', (e) => { state.profileCapture.captureGender = e.target.checked; });
-      document.getElementById('pc-location').addEventListener('change', (e) => { state.profileCapture.captureLocation = e.target.checked; });
-      document.getElementById('pc-social').addEventListener('change', (e) => { state.profileCapture.captureSocialClass = e.target.checked; });
-      document.getElementById('pc-interest-q').addEventListener('input', (e) => { state.profileCapture.interestQuestion = e.target.value; });
-      document.getElementById('pc-interest-opts').addEventListener('input', (e) => {
-        state.profileCapture.interestOptions = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-      });
-      document.getElementById('engagement-mode').addEventListener('change', (e) => { state.engagementMode = e.target.checked; });
-      document.getElementById('share-template').addEventListener('input', (e) => { state.shareTemplate = e.target.value; });
-
-      document.getElementById('add-cat').addEventListener('click', () => {
-        const key = slugKey('category', state.categories.map(c => c.key));
-        state.categories.push({ key, label: 'New category' });
-        state.questions.forEach(q => q.options.forEach(o => { o.score[key] = 0; }));
-        render();
-      });
-
-      document.getElementById('add-q').addEventListener('click', () => {
-        const score = {}; state.categories.forEach(c => { score[c.key] = 0; });
-        state.questions.push({ text: 'New question', options: [{ label: 'Option A', score: { ...score } }, { label: 'Option B', score: { ...score } }] });
-        render();
-      });
-
-      document.getElementById('save-btn').addEventListener('click', save);
-      document.getElementById('save-btn-bottom').addEventListener('click', save);
-
-      document.getElementById('publish-btn').addEventListener('click', async () => {
-        await save();
-        const { scorecard: updated } = await api(`/scorecards/${scorecardId}/publish`, { method: 'POST', body: { published: !state.published } });
-        state.published = updated.published;
-        state.slug = updated.slug;
-        renderPublish();
-      });
-
-      document.getElementById('preview-btn').addEventListener('click', async () => {
-        const win = window.open('', '_blank');
-        await save();
-        if (win) win.location.href = `/take/index.html?slug=${state.slug}&preview=1`;
-      });
-
-      document.getElementById('copy-link').addEventListener('click', () => {
-        document.getElementById('share-link').select();
-        document.execCommand('copy');
-      });
-
-      document.getElementById('copy-embed').addEventListener('click', () => {
-        document.getElementById('embed-code').select();
-        document.execCommand('copy');
-      });
-
-      document.getElementById('copy-whatsapp-text').addEventListener('click', () => {
-        document.getElementById('whatsapp-broadcast-text').select();
-        document.execCommand('copy');
-      });
-    })();
+  (async () => {
+    USER = await requireUser();
+    if (!USER) return;
+    const { scorecard } = await api(`/scorecards/${scorecardId}`);
+    state = scorecard;
+    state.profileCapture ||= { enabled: false, interestOptions: [] };
+    if (!state.categories.length) state.categories = [{ key: 'fit', label: 'Fit' }];
+    if (!state.tiers.length) state.tiers = [{ min: 70, label: 'Hot lead' }, { min: 40, label: 'Warm lead' }, { min: 0, label: 'Cold lead' }];
+    TIER = sortedTiers()[0].i;
+    if (AREA === 'results') SEL = { type: 'tier', i: TIER }; else if (AREA === 'landing') SEL = { type: 'landing' }; else if (AREA !== 'questions') SEL = { type: AREA };
+    drawAll();
+    setStatus('saved', 'All changes saved');
+  })();
   </script>
 </body>
 </html>

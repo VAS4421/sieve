@@ -305,27 +305,33 @@ function tierMessage(overall, strongestLabel, weakestLabel, seed) {
 // --- Per-answer insight, driven by how the chosen option ranks among the
 // question's own options (not owner-written commentary) -----------------
 
+// The result page already quotes the respondent's own answer right above
+// this line, so these never repeat it back. Instead each one says what the
+// answer means for the area it's scored in (`area`, e.g. "your urgency"),
+// and — whenever there was a stronger position — names it (`best`), so the
+// respondent sees exactly what "better" looks like for them. Framed as
+// opportunity, never as a failing grade, and no invented statistics.
 const ANSWER_INSIGHT = {
   best: [
-    (q, a) => `"${a}" was the strongest possible answer here — this is working exactly as it should.`,
-    (q, a) => `Choosing "${a}" put this question firmly in your favour.`,
-    (q, a) => `"${a}" is the answer that helps the most on this one.`,
+    (area) => `This is a real strength. You're already in the strongest position here, and it's one of the reasons behind ${area}. Build on it rather than rethink it.`,
+    (area) => `Nothing to fix here. This is exactly the position that makes ${area} work in your favour, so protect it as things change.`,
+    (area) => `You're already where this needs to be. It gives ${area} a solid foundation to build everything else on.`,
   ],
   strong: [
-    (q, a) => `"${a}" is a solid answer here — close to the strongest option available.`,
-    (q, a) => `"${a}" puts you ahead on this question, just short of the very best option.`,
+    (area, best) => `A good position, just short of the strongest one ("${best}"). One small step closer would round out ${area}.`,
+    (area, best) => `You're nearly there on this. Moving towards "${best}" is one of the quickest wins available for ${area}.`,
   ],
   mid: [
-    (q, a) => `"${a}" is a middle-of-the-road answer here — not holding you back, not pushing you ahead either.`,
-    (q, a) => `"${a}" is a reasonable answer, with a stronger option still available on this one.`,
+    (area, best) => `This keeps ${area} in the middle. The strongest position here is "${best}", and the distance between the two is where your quickest gains are.`,
+    (area, best) => `Steady, but not yet working for you. The strongest position on this one is "${best}". Closing even part of that gap would show up in ${area}.`,
   ],
   weak: [
-    (q, a) => `"${a}" is on the lower end of what's possible here — worth a second look.`,
-    (q, a) => `"${a}" is costing you a bit on this question — there was a notably stronger option available.`,
+    (area, best) => `This is one of the answers holding ${area} back. The strongest position here is "${best}", which makes this well worth a closer look.`,
+    (area, best) => `Worth a second look: this answer is costing ${area} more than it needs to. Moving even partway towards "${best}" would change your result.`,
   ],
   worst: [
-    (q, a) => `"${a}" was the weakest available answer here — this is one of the clearest places to improve.`,
-    (q, a) => `Of everything asked, this is where "${a}" is doing the most damage to the overall score.`,
+    (area, best) => `This is where you lose the most ground on ${area} right now. The strongest position here is "${best}", and the good news is that this is also where change shows up fastest.`,
+    (area, best) => `Right now this is the biggest drag on ${area}. Moving from here towards "${best}" would make a bigger difference than almost anything else on this question.`,
   ],
 };
 
@@ -393,15 +399,23 @@ function ctaHeadline(firstName, weakestLabel, seed) {
   return fn(firstName, weakestLabel);
 }
 
-function answerInsight(questionText, chosenLabel, rankFraction, seed) {
+// `areaLabels` are the categories this question is scored in; `bestLabel` is
+// the strongest option's text. Both come from the scorecard itself.
+function answerInsight(questionText, chosenLabel, rankFraction, seed, areaLabels = [], bestLabel = '') {
   let position;
   if (rankFraction <= 0.15) position = 'best';
   else if (rankFraction <= 0.4) position = 'strong';
   else if (rankFraction <= 0.6) position = 'mid';
   else if (rankFraction <= 0.85) position = 'weak';
   else position = 'worst';
+  // with no stronger option to point at, fall back to the strength framing rather than an empty quote
+  if (position !== 'best' && (!bestLabel || bestLabel === chosenLabel)) position = 'best';
+  const names = areaLabels.filter(Boolean).map(l => l.toLowerCase());
+  const area = names.length === 0 ? 'your result'
+    : names.length === 1 ? `your ${names[0]} score`
+    : `your ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} scores`;
   const fn = pick(`${seed}:insight`, ANSWER_INSIGHT[position]);
-  return fn(questionText, chosenLabel);
+  return fn(area, bestLabel);
 }
 
 function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, overall, tierLabel, leadId }) {
@@ -460,10 +474,13 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
     const rank = sorted.indexOf(chosenTotal);
     const rankFraction = q.options.length > 1 ? rank / (q.options.length - 1) : 0;
     const ownerInsight = chosen.insight && chosen.insight.trim();
+    // the areas this question actually feeds, and what its strongest answer looks like
+    const areaLabels = categories.filter(c => q.options.some(o => Number((o.score || {})[c.key] || 0) > 0)).map(c => c.label).slice(0, 3);
+    const bestLabel = q.options[totals.indexOf(Math.max(...totals))]?.label || '';
     return {
       question: q.text,
       answer: chosen.label,
-      insight: ownerInsight || answerInsight(q.text, chosen.label, rankFraction, `${seedBase}:q${i}`),
+      insight: ownerInsight || answerInsight(q.text, chosen.label, rankFraction, `${seedBase}:q${i}`, areaLabels, bestLabel),
     };
   }).filter(Boolean);
 

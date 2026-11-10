@@ -8,168 +8,239 @@
 <link rel="apple-touch-icon" href="/logo.png" />
 <link rel="stylesheet" href="/styles.css" />
 <link rel="stylesheet" href="/app.css" />
+<link rel="stylesheet" href="/studio.css" />
 </head>
-<body>
-  <div class="app-shell">
-    <div class="app-topbar">
-      <a href="/index.html" class="brand"><img src="/logo.png" class="brand-mark" alt="Sieve logo" />Sieve</a>
-      <div class="actions">
-        <span style="font-size:13.5px;color:var(--ink-soft);" data-user-business>…</span>
-        <a href="/team.html" class="btn btn-ghost btn-sm">Team</a>
-        <a href="/templates.html" class="btn btn-ghost btn-sm">Templates</a>
-        <a href="/billing.html" class="btn btn-ghost btn-sm">Billing</a>
-        <button class="btn btn-ghost btn-sm" data-logout>Log out</button>
+<body class="ds">
+  <header class="ds-top">
+    <a href="/index.html" class="ds-brand"><img src="/logo.png" alt="" />Sieve</a>
+    <nav class="ds-nav" aria-label="Main">
+      <a href="/dashboard.html" aria-current="page">Scorecards</a>
+      <a href="/templates.html">Templates</a>
+      <a href="/team.html">Team</a>
+      <a href="/billing.html">Billing</a>
+    </nav>
+    <div class="ds-right">
+      <span id="usage-summary"></span>
+      <div class="ds-me">
+        <button class="ds-avatar" id="me-btn" aria-haspopup="true" aria-expanded="false" title="Account"><span id="me-initials">·</span></button>
+        <div class="ds-menu" id="me-menu" hidden>
+          <div class="ds-menu-head"><b data-user-business>…</b></div>
+          <a href="/team.html">Team</a><a href="/billing.html">Billing</a>
+          <button data-logout>Log out</button>
+        </div>
       </div>
     </div>
-    <main class="app-main">
-      <div id="billing-alert"></div>
-      <div id="usage-summary"></div>
-      <div class="page-head">
-        <h1>Your scorecards</h1>
-        <button class="btn btn-accent" id="new-btn">+ New scorecard</button>
+  </header>
+
+  <main class="ds-main">
+    <div id="billing-alert"></div>
+    <div class="ds-hello">
+      <div><h1 id="hello">Your scorecards</h1><p id="hello-sub">Build a scorecard, share the link, and watch qualified leads come in, already scored.</p></div>
+      <button class="btn btn-primary ds-new" id="new-btn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New scorecard</button>
+    </div>
+    <div id="stats"></div>
+    <div class="ds-toolbar" id="toolbar" hidden>
+      <div class="ds-tabs" role="tablist">
+        <button data-filter="all" class="on">All</button><button data-filter="live">Live</button><button data-filter="draft">Drafts</button>
       </div>
-      <div id="stats"></div>
-      <div id="content"><p style="color:var(--ink-faint);">Loading…</p></div>
-    </main>
+      <label class="ds-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="search" placeholder="Search scorecards" /></label>
+    </div>
+    <div id="content"><div class="ds-loading"><span></span><span></span><span></span></div></div>
+  </main>
+
+  <!-- New scorecard: pick a template or start blank -->
+  <div class="ds-modal" id="picker" hidden>
+    <div class="ds-sheet" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+      <div class="ds-sheet-head">
+        <div><h2 id="picker-title">Start a new scorecard</h2><p>Pick a ready-made template for your industry, or start from scratch. You can change everything after.</p></div>
+        <button class="ds-close" data-close-picker aria-label="Close">×</button>
+      </div>
+      <div class="ds-sheet-tools">
+        <label class="ds-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="tpl-search" placeholder="Search templates, e.g. solar, wedding, insurance" /></label>
+        <div class="ds-cats" id="tpl-cats"></div>
+      </div>
+      <div class="ds-tpl-grid" id="tpl-grid"><div class="ds-loading"><span></span><span></span><span></span></div></div>
+    </div>
   </div>
+
   <script src="/app.js"></script>
   <script>
-    (async () => {
-      const user = await requireUser();
-      if (!user) return;
+  // Same server calls as before: /scorecards (list, create, delete), /billing/wallet, /templates and
+  // createScorecardFromTemplate() from app.js. New: filters, search, a card menu and an in-app template picker.
+  const CATEGORY_LABELS = {
+    realestate: 'Real Estate', finance: 'Finance & Insurance', it: 'IT & Cybersecurity', coaching: 'Coaching & Consulting',
+    hr: 'HR & Recruitment', fitness: 'Fitness & Wellness', events: 'Events & Waitlists', solar: 'Solar & Power',
+    japa: 'Relocation & Study Abroad', auto: 'Automobile', weddings: 'Weddings', beauty: 'Beauty & Skincare',
+    security: 'Security Services', logistics: 'Logistics & Freight', construction: 'Construction & Interior Design',
+    legal: 'Legal Services', agritech: 'AgriTech', foodservice: 'Food Service & Catering', diaspora: 'Diaspora Finance',
+    marketing: 'Marketing & Advertising',
+  };
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  let ALL = [], FILTER = 'all', QUERY = '', TEMPLATES = null, TCAT = 'all', TQ = '';
 
-      const content = document.getElementById('content');
-      const statsEl = document.getElementById('stats');
+  (async () => {
+    const user = await requireUser();
+    if (!user) return;
+    const name = user.business_name || '';
+    $('#me-initials').textContent = name.split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '·';
+    const h = new Date().getHours();
+    $('#hello').textContent = `${h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'}${name ? ', ' + name : ''}`;
 
-      function escapeHtml(s) {
-        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-      }
+    // account menu
+    const mb = $('#me-btn'), mm = $('#me-menu');
+    mb.onclick = (e) => { e.stopPropagation(); mm.hidden = !mm.hidden; mb.setAttribute('aria-expanded', String(!mm.hidden)); };
+    document.addEventListener('click', (e) => { if (!e.target.closest('.ds-me')) { mm.hidden = true; mb.setAttribute('aria-expanded', 'false'); } if (!e.target.closest('.ds-kebab-wrap')) $$('.ds-kebab-menu').forEach(m => m.hidden = true); });
 
-      function renderStats(scorecards) {
-        const total = scorecards.length;
-        const live = scorecards.filter(sc => sc.published).length;
-        const totalLeads = scorecards.reduce((sum, sc) => sum + sc.leadCount, 0);
+    $$('[data-filter]').forEach(b => b.onclick = () => { FILTER = b.dataset.filter; $$('[data-filter]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+    $('#search').oninput = (e) => { QUERY = e.target.value.toLowerCase(); draw(); };
+    $('#new-btn').onclick = openPicker;
+    $$('[data-close-picker]').forEach(b => b.onclick = closePicker);
+    $('#picker').onclick = (e) => { if (e.target.id === 'picker') closePicker(); };
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePicker(); });
+    if (new URLSearchParams(location.search).get('new') === '1') openPicker();
 
-        statsEl.innerHTML = `
-          <div class="wallet-card dash-stats">
-            <div class="wallet-stats">
-              <div><span class="wallet-num">${total}</span><span class="wallet-label">Scorecard${total === 1 ? '' : 's'}</span></div>
-              <div><span class="wallet-num">${live}</span><span class="wallet-label">Live now</span></div>
-              <div><span class="wallet-num">${totalLeads}</span><span class="wallet-label">Total lead${totalLeads === 1 ? '' : 's'}</span></div>
-            </div>
+    load();
+    renderBillingStatus();
+  })();
+
+  async function load() {
+    const { scorecards } = await api('/scorecards');
+    ALL = scorecards;
+    drawStats(); draw();
+  }
+  function drawStats() {
+    const total = ALL.length, live = ALL.filter(s => s.published).length, leads = ALL.reduce((a, s) => a + (s.leadCount || 0), 0);
+    $('#toolbar').hidden = !total;
+    if (!total) { $('#stats').innerHTML = ''; return; }
+    $('#hello-sub').textContent = leads ? `You've collected ${leads} lead${leads === 1 ? '' : 's'} so far. Keep sharing your links.` : 'Share your live links to start collecting scored leads.';
+    $('#stats').innerHTML = `<div class="ds-stats">
+      <div class="ds-stat"><span class="ds-stat-ic a"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><div><b>${total}</b><small>Scorecard${total === 1 ? '' : 's'}</small></div></div>
+      <div class="ds-stat"><span class="ds-stat-ic g"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7"/></svg></span><div><b>${live}</b><small>Live now</small></div></div>
+      <div class="ds-stat"><span class="ds-stat-ic b"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg></span><div><b>${leads}</b><small>Total lead${leads === 1 ? '' : 's'}</small></div></div>
+    </div>`;
+  }
+  function draw() {
+    const content = $('#content');
+    if (!ALL.length) {
+      content.innerHTML = `<div class="ds-empty">
+        <div class="ds-empty-art"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+        <h2>Create your first scorecard</h2><p>A scorecard asks your leads a few questions, gives them a personal score, and sends them to you ranked by how ready they are.</p>
+        <div class="ds-empty-choices">
+          <button class="ds-choice" id="empty-tpl"><b>📚 Start from a template</b><small>60+ ready-made scorecards for Nigerian industries</small></button>
+          <button class="ds-choice" id="empty-blank"><b>✏️ Start from scratch</b><small>Write your own questions</small></button>
+        </div></div>`;
+      $('#empty-tpl').onclick = openPicker;
+      $('#empty-blank').onclick = createBlank;
+      return;
+    }
+    const list = ALL.filter(s => (FILTER === 'all' || (FILTER === 'live' ? s.published : !s.published)) && (!QUERY || s.title.toLowerCase().includes(QUERY)));
+    if (!list.length) { content.innerHTML = `<div class="ds-none">No scorecards match. <button class="bx-link" id="clear">Clear filters</button></div>`; $('#clear').onclick = () => { FILTER = 'all'; QUERY = ''; $('#search').value = ''; $$('[data-filter]').forEach(x => x.classList.toggle('on', x.dataset.filter === 'all')); draw(); }; return; }
+    content.innerHTML = `<div class="ds-grid">${list.map(sc => {
+      const q = sc.questions.length, live = sc.published, link = `${location.origin}/take/index.html?slug=${sc.slug}`;
+      return `<article class="ds-card ${live ? 'live' : 'draft'}">
+        <a class="ds-thumb" href="/builder.html?id=${sc.id}" ${sc.coverImage ? `style="background-image:url('${esc(sc.coverImage)}')"` : ''} aria-label="Edit ${esc(sc.title)}">
+          ${sc.coverImage ? '' : `<span class="ds-thumb-ph">${esc((sc.title || 'S').trim()[0] || 'S')}</span>`}
+          <span class="ds-status ${live ? 'live' : ''}">${live ? '● Live' : 'Draft'}</span>
+        </a>
+        <div class="ds-card-body">
+          <h3 title="${esc(sc.title)}">${esc(sc.title)}</h3>
+          <div class="ds-metrics">
+            <span><b>${sc.leadCount}</b> lead${sc.leadCount === 1 ? '' : 's'}</span>
+            <span><b>${q}</b> question${q === 1 ? '' : 's'}</span>
+            <span class="ds-upd">Updated ${new Date(sc.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
           </div>
-        `;
-      }
-
-      async function load() {
-        const { scorecards } = await api('/scorecards');
-
-        if (!scorecards.length) {
-          statsEl.innerHTML = '';
-          content.innerHTML = `
-            <div class="empty-state">
-              <svg width="56" height="56" viewBox="0 0 56 56" fill="none" style="margin:0 auto 18px;">
-                <rect x="6" y="6" width="44" height="44" rx="12" stroke="var(--accent)" stroke-width="2.5" opacity="0.35"/>
-                <path d="M18 28h20M18 20h20M18 36h12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
-              </svg>
-              <h3>No scorecards yet</h3>
-              <p>Create your first one to start qualifying leads.</p>
-              <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;">
-                <button class="btn btn-accent btn-sm" id="empty-new-btn">+ New scorecard</button>
-                <a class="btn btn-ghost btn-sm" href="/templates.html">Browse templates</a>
+          ${!q ? `<div class="ds-nudge">Add your questions to finish this scorecard →</div>` : !live ? `<div class="ds-nudge">Ready to publish? Open it and go live →</div>` : ''}
+          <div class="ds-actions">
+            <a class="btn btn-primary btn-sm" href="/builder.html?id=${sc.id}">Edit</a>
+            <a class="btn btn-ghost btn-sm" href="/leads.html?id=${sc.id}">Leads${sc.leadCount ? ` <span class="ds-count">${sc.leadCount}</span>` : ''}</a>
+            ${live ? `<button class="btn btn-ghost btn-sm ds-icon-btn" data-copy="${esc(link)}" title="Copy link" aria-label="Copy link"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></button>` : ''}
+            <div class="ds-kebab-wrap">
+              <button class="btn btn-ghost btn-sm ds-icon-btn" data-kebab aria-label="More actions" aria-haspopup="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+              <div class="ds-kebab-menu" hidden>
+                ${live ? `<a href="${esc(link)}" target="_blank" rel="noopener">View live page</a><a href="/report.html?id=${sc.id}">Report</a><a href="https://wa.me/?text=${encodeURIComponent(`${sc.title}: take this quick assessment and get your results instantly: ${link}`)}" target="_blank" rel="noopener">Share on WhatsApp</a>` : `<a href="/builder.html?id=${sc.id}#share">Publish</a>`}
+                <button class="danger" data-delete="${sc.id}" data-title="${esc(sc.title)}">Delete</button>
               </div>
-            </div>`;
-          document.getElementById('empty-new-btn').addEventListener('click', createScorecard);
-          return;
-        }
-
-        renderStats(scorecards);
-        content.innerHTML = `<div class="sc-grid">${scorecards.map(sc => `
-          <div class="sc-card sc-card-${sc.published ? 'live' : 'draft'}">
-            ${sc.coverImage ? `<div class="sc-card-thumb" style="background-image:url('${escapeHtml(sc.coverImage)}');"></div>` : ''}
-            <div class="sc-card-top">
-              <div class="sc-title">${escapeHtml(sc.title)}</div>
-              <span class="badge ${sc.published ? 'live' : 'draft'}">${sc.published ? 'Live' : 'Draft'}</span>
-            </div>
-            <div class="sc-meta">${sc.questions.length} question${sc.questions.length === 1 ? '' : 's'} · ${sc.leadCount} lead${sc.leadCount === 1 ? '' : 's'}</div>
-            <div class="sc-meta sc-meta-faint">Updated ${new Date(sc.updatedAt).toLocaleDateString()}</div>
-            <div class="sc-card-actions">
-              <a class="btn btn-ghost btn-sm" href="/builder.html?id=${sc.id}">Edit</a>
-              <a class="btn btn-ghost btn-sm" href="/leads.html?id=${sc.id}">Leads (${sc.leadCount})</a>
-              ${sc.published ? `<a class="btn btn-ghost btn-sm" href="/report.html?id=${sc.id}">Report</a>` : ''}
-              ${sc.published ? `<a class="btn btn-ghost btn-sm" href="/take/index.html?slug=${sc.slug}" target="_blank">View live</a>` : ''}
-              <button class="btn btn-ghost btn-sm" data-delete="${sc.id}" data-title="${escapeHtml(sc.title)}">Delete</button> 
             </div>
           </div>
-        `).join('')}</div>`;
+        </div>
+      </article>`; }).join('')}
+      <button class="ds-card ds-add" id="grid-new"><span>+</span><b>New scorecard</b><small>From a template or from scratch</small></button></div>`;
+    $('#grid-new').onclick = openPicker;
+    $$('[data-kebab]').forEach(b => b.onclick = (e) => { e.stopPropagation(); const m = b.nextElementSibling, was = m.hidden; $$('.ds-kebab-menu').forEach(x => x.hidden = true); m.hidden = !was; });
+    $$('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); showToast('Link copied', 'success'); } catch { showToast(b.dataset.copy, 'info'); } });
+    $$('[data-delete]').forEach(b => b.onclick = async () => {
+      if (!(await showConfirm(`Delete "${b.dataset.title}"? This also permanently deletes all its leads. This can't be undone.`))) return;
+      try { await api(`/scorecards/${b.dataset.delete}`, { method: 'DELETE' }); showToast('Scorecard deleted', 'success'); load(); }
+      catch (err) { showToast(err.message || 'Could not delete this scorecard.'); }
+    });
+  }
 
-        content.querySelectorAll('[data-delete]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const title = btn.dataset.title;
-            if (!(await showConfirm(`Delete "${title}"? This also permanently deletes all its leads. This can't be undone.`))) return;
-            try {
-              await api(`/scorecards/${btn.dataset.delete}`, { method: 'DELETE' });
-              load();
-            } catch (err) {
-              showToast(err.message || 'Could not delete this scorecard.');
-            }
-          });
-        });
-      }
+  /* ---------- new scorecard picker ---------- */
+  async function openPicker() {
+    $('#picker').hidden = false; document.body.style.overflow = 'hidden';
+    setTimeout(() => $('#tpl-search').focus(), 50);
+    if (!TEMPLATES) {
+      try { const res = await fetch('/api/templates'); TEMPLATES = (await res.json()).templates || []; }
+      catch { $('#tpl-grid').innerHTML = `<p class="ds-none">Couldn't load templates right now. You can still start from scratch.</p>`; TEMPLATES = []; }
+      const cats = [...new Set(TEMPLATES.map(t => t.filterCategory).filter(Boolean))];
+      $('#tpl-cats').innerHTML = `<button class="on" data-tcat="all">All</button>` + cats.map(c => `<button data-tcat="${esc(c)}">${esc(CATEGORY_LABELS[c] || c)}</button>`).join('');
+      $$('[data-tcat]').forEach(b => b.onclick = () => { TCAT = b.dataset.tcat; $$('[data-tcat]').forEach(x => x.classList.toggle('on', x === b)); drawTemplates(); });
+      $('#tpl-search').oninput = (e) => { TQ = e.target.value.toLowerCase(); drawTemplates(); };
+    }
+    drawTemplates();
+  }
+  function closePicker() { $('#picker').hidden = true; document.body.style.overflow = ''; }
+  function drawTemplates() {
+    const list = (TEMPLATES || []).filter(t => (TCAT === 'all' || t.filterCategory === TCAT) && (!TQ || (t.title + ' ' + (t.description || '') + ' ' + (CATEGORY_LABELS[t.filterCategory] || '')).toLowerCase().includes(TQ)));
+    $('#tpl-grid').innerHTML = `<button class="ds-tpl blank" id="tpl-blank"><span class="ds-tpl-cover"><b>+</b></span><span class="ds-tpl-body"><b>Start from scratch</b><small>An empty scorecard. Write your own questions.</small></span></button>` +
+      list.map(t => `<button class="ds-tpl" data-tpl="${esc(t.slug)}">
+        <span class="ds-tpl-cover" style="background-image:url('${esc(t.coverImage || `/covers/${t.slug}.svg`)}')"></span>
+        <span class="ds-tpl-body"><span class="ds-tpl-tag">${esc(CATEGORY_LABELS[t.filterCategory] || t.filterCategory || '')}</span><b>${esc(t.title)}</b><small>${esc(t.description || '')}</small></span>
+        <span class="ds-tpl-use">Use template →</span></button>`).join('') +
+      (list.length ? '' : `<p class="ds-none" style="grid-column:1/-1">No templates match "${esc(TQ)}". Try another word, or start from scratch.</p>`);
+    $('#tpl-blank').onclick = createBlank;
+    $$('[data-tpl]').forEach(b => b.onclick = async () => {
+      if (b.classList.contains('busy')) return;
+      b.classList.add('busy'); b.querySelector('.ds-tpl-use').textContent = 'Setting it up…';
+      try {
+        const res = await fetch(`/api/templates/${encodeURIComponent(b.dataset.tpl)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load this template.');
+        const id = await createScorecardFromTemplate(data.template);
+        window.location.href = `/builder.html?id=${id}`;
+      } catch (ex) { b.classList.remove('busy'); b.querySelector('.ds-tpl-use').textContent = 'Use template →'; showToast(ex.message || 'Something went wrong. Try again.'); }
+    });
+  }
+  async function createBlank() {
+    try {
+      const { scorecard } = await api('/scorecards', { method: 'POST', body: { title: 'Untitled scorecard' } });
+      window.location.href = `/builder.html?id=${scorecard.id}`;
+    } catch (err) { showToast(err.message || 'Could not create a new scorecard.'); }
+  }
 
-      function fmtNaira(kobo) { return '₦' + (kobo / 100).toLocaleString('en-NG'); }
-
-      // Same check the server runs before showing a scorecard to a visitor
-      // (billingGate in routes/public.js) — surfaced here so an owner sees
-      // *why* leads have stopped coming in without having to guess. Also
-      // renders a low-key, always-visible usage line — not a warning, just
-      // "where you stand" — from the same wallet fetch.
-      async function renderBillingStatus() {
-        try {
-          const wallet = await api('/billing/wallet');
-          const alertEl = document.getElementById('billing-alert');
-          if (wallet.billingMode === 'credits' && wallet.creditBalance <= 0) {
-            alertEl.innerHTML = `<div class="billing-alert"><span><strong>You're out of response credits.</strong> Your scorecard links still work, but visitors can't submit a response or get a result until you top up.</span><a class="btn btn-accent btn-sm" href="/billing.html">Top up now</a></div>`;
-          } else if (wallet.billingMode === 'cpl' && wallet.cplChargeFailing) {
-            alertEl.innerHTML = `<div class="billing-alert"><span><strong>We couldn't charge your card for a recent lead.</strong> Your scorecards can't collect leads again until you replace your card.</span><a class="btn btn-accent btn-sm" href="/billing.html">Replace card</a></div>`;
-          } else if (wallet.billingMode === 'cpl' && !wallet.hasCardOnFile) {
-            alertEl.innerHTML = `<div class="billing-alert"><span><strong>No card on file for pay-per-lead.</strong> Your scorecards can't collect leads until you save a card.</span><a class="btn btn-accent btn-sm" href="/billing.html">Save a card</a></div>`;
-          } else {
-            alertEl.innerHTML = '';
-          }
-
-          const summaryEl = document.getElementById('usage-summary');
-          let summary;
-          if (wallet.billingMode === 'credits') {
-            summary = `${wallet.creditBalance} credit${wallet.creditBalance === 1 ? '' : 's'} left`;
-          } else if (wallet.billingMode === 'cpl') {
-            const cardNote = wallet.cplChargeFailing ? 'card failing' : wallet.hasCardOnFile ? 'card on file' : 'no card saved';
-            summary = `Pay-per-lead — ${fmtNaira(wallet.cplRateKobo)} per lead · ${cardNote}`;
-          } else if (!wallet.hasEverPaid) {
-            summary = 'Free plan — 1 scorecard limit';
-          } else {
-            summary = 'Subscription plan';
-          }
-          summaryEl.innerHTML = `<a href="/billing.html" class="usage-pill">${summary}</a>`;
-        } catch {
-          // Non-critical — a failed wallet fetch just means no banner/summary, never blocks the dashboard.
-        }
-      }
-
-      async function createScorecard() {
-        try {
-          const { scorecard } = await api('/scorecards', { method: 'POST', body: { title: 'Untitled scorecard' } });
-          window.location.href = `/builder.html?id=${scorecard.id}`;
-        } catch (err) {
-          showToast(err.message || 'Could not create a new scorecard.');
-        }
-      }
-
-      document.getElementById('new-btn').addEventListener('click', createScorecard);
-
-      load();
-      renderBillingStatus();
-    })();
+  /* ---------- billing status (unchanged logic) ---------- */
+  function fmtNaira(kobo) { return '₦' + (kobo / 100).toLocaleString('en-NG'); }
+  async function renderBillingStatus() {
+    try {
+      const wallet = await api('/billing/wallet');
+      const alertEl = $('#billing-alert');
+      if (wallet.billingMode === 'credits' && wallet.creditBalance <= 0) {
+        alertEl.innerHTML = `<div class="billing-alert"><span><strong>You're out of response credits.</strong> Your scorecard links still work, but visitors can't submit a response or get a result until you top up.</span><a class="btn btn-accent btn-sm" href="/billing.html">Top up now</a></div>`;
+      } else if (wallet.billingMode === 'cpl' && wallet.cplChargeFailing) {
+        alertEl.innerHTML = `<div class="billing-alert"><span><strong>We couldn't charge your card for a recent lead.</strong> Your scorecards can't collect leads again until you replace your card.</span><a class="btn btn-accent btn-sm" href="/billing.html">Replace card</a></div>`;
+      } else if (wallet.billingMode === 'cpl' && !wallet.hasCardOnFile) {
+        alertEl.innerHTML = `<div class="billing-alert"><span><strong>No card on file for pay-per-lead.</strong> Your scorecards can't collect leads until you save a card.</span><a class="btn btn-accent btn-sm" href="/billing.html">Save a card</a></div>`;
+      } else alertEl.innerHTML = '';
+      let summary;
+      if (wallet.billingMode === 'credits') summary = `${wallet.creditBalance} credit${wallet.creditBalance === 1 ? '' : 's'} left`;
+      else if (wallet.billingMode === 'cpl') summary = `${fmtNaira(wallet.cplRateKobo)} per lead · ${wallet.cplChargeFailing ? 'card failing' : wallet.hasCardOnFile ? 'card on file' : 'no card saved'}`;
+      else if (!wallet.hasEverPaid) summary = 'Free plan · 1 scorecard';
+      else summary = 'Subscription plan';
+      $('#usage-summary').innerHTML = `<a href="/billing.html" class="ds-usage">${summary}</a>`;
+    } catch { /* never blocks the dashboard */ }
+  }
   </script>
 </body>
 </html>

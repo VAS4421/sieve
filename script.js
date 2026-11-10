@@ -13,10 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
         navLinks.style.top = '64px';
         navLinks.style.left = '0';
         navLinks.style.right = '0';
-        navLinks.style.background = '#FBF9F5';
+        navLinks.style.background = '#FFFFFF';
         navLinks.style.flexDirection = 'column';
         navLinks.style.padding = '20px 28px';
-        navLinks.style.borderBottom = '1px solid #E6E2D8';
+        navLinks.style.borderBottom = '1px solid #E1E7F2';
         navLinks.style.gap = '18px';
       }
     });
