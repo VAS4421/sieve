@@ -337,6 +337,42 @@
   };
   const overallBand = (n) => (n >= 70 ? 'strong' : n >= 40 ? 'developing' : 'weak');
 
+  // "Your score map": a radar chart for 3+ areas (their shape against full marks), twin rings for 2 areas.
+  // Pure SVG, no library, so it renders the same in the page and in screenshots.
+  function scoreMapSvg(cats) {
+    const n = cats.length;
+    if (n === 2) {
+      const ring = (c, r, i) => {
+        const len = 2 * Math.PI * r, col = (BAND[c.band] || BAND.developing).color;
+        return `<circle cx="130" cy="130" r="${r}" class="rx-map-track"/>
+          <circle cx="130" cy="130" r="${r}" class="rx-map-arc" style="--c:${col};--len:${len.toFixed(1)};--to:${(len * (1 - c.score / 100)).toFixed(1)};--d:${i * 0.25}s" transform="rotate(-90 130 130)"/>`;
+      };
+      return `<svg viewBox="0 0 260 260" class="rx-map-svg" role="img" aria-label="${cats.map(c => `${escapeHtml(c.label)} ${c.score}%`).join(', ')}">
+        ${ring(cats[0], 104, 0)}${ring(cats[1], 76, 1)}
+        <text x="130" y="124" class="rx-map-mid">${Math.round((cats[0].score + cats[1].score) / 2)}%</text>
+        <text x="130" y="146" class="rx-map-sub">average</text></svg>`;
+    }
+    const cx = 160, cy = 150, R = 104;
+    const pt = (i, f) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / n; return [cx + Math.cos(a) * R * f, cy + Math.sin(a) * R * f]; };
+    const poly = (f) => cats.map((_, i) => pt(i, typeof f === 'function' ? f(i) : f).map(v => v.toFixed(1)).join(',')).join(' ');
+    const grid = [0.25, 0.5, 0.75, 1].map(f => `<polygon points="${poly(f)}" class="rx-map-grid${f === 1 ? ' outer' : ''}"/>`).join('');
+    const axes = cats.map((_, i) => { const [x, y] = pt(i, 1); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="rx-map-axis"/>`; }).join('');
+    const strongRing = `<polygon points="${poly(0.7)}" class="rx-map-strong"/>`;
+    const shape = `<g class="rx-map-shape" style="transform-origin:${cx}px ${cy}px"><polygon points="${poly(i => Math.max(0.04, cats[i].score / 100))}" class="rx-map-poly"/>
+      ${cats.map((c, i) => { const [x, y] = pt(i, Math.max(0.04, c.score / 100)); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" class="rx-map-dot" style="--c:${(BAND[c.band] || BAND.developing).color}"/>`; }).join('')}</g>`;
+    const labels = cats.map((c, i) => {
+      const [x, y] = pt(i, 1.2), anchor = Math.abs(x - cx) < 8 ? 'middle' : x > cx ? 'start' : 'end';
+      const words = String(c.label).split(' '), lines = [];
+      words.forEach(w => { const last = lines[lines.length - 1]; if (last && (last + ' ' + w).length <= 14) lines[lines.length - 1] = last + ' ' + w; else lines.push(w); });
+      const dy = y < cy - 10 ? -(lines.length - 1) * 13 : 0;
+      return `<text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" text-anchor="${anchor}" class="rx-map-label">${lines.map((l, k) => `<tspan x="${x.toFixed(1)}" dy="${k ? 13 : 0}">${escapeHtml(l)}</tspan>`).join('')}<tspan x="${x.toFixed(1)}" dy="15" class="rx-map-val">${c.score}%</tspan></text>`;
+    }).join('');
+    return `<svg viewBox="-20 -14 360 330" class="rx-map-svg" role="img" aria-label="${cats.map(c => `${escapeHtml(c.label)} ${c.score}%`).join(', ')}">
+      <defs><linearGradient id="rxmapg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7C93FF"/><stop offset="1" stop-color="#22D3EE"/></linearGradient>
+        <radialGradient id="rxmapfill"><stop offset="0" stop-color="#22D3EE" stop-opacity=".55"/><stop offset="1" stop-color="#5B6CFF" stop-opacity=".28"/></radialGradient></defs>
+      ${grid}${axes}${strongRing}${shape}${labels}</svg>`;
+  }
+
   async function renderResult() {
     renderProgress();
     root.innerHTML = `<div class="rx-loading"><div class="rx-spinner"></div><p>Reading your answers…</p></div>`;
@@ -428,12 +464,32 @@
         </div>
       </section>` : '';
 
+    // 3b. the score map: chart + bars, on a premium dark panel
+    const byScore = [...cats].sort((a, b) => b.score - a.score);
+    const mapBlock = cats.length > 1 ? `
+      <section class="rx-map" id="rx-map">
+        <div class="rx-map-head">
+          <div><p class="rx-kicker light">Your score map</p><h2>The shape of ${name ? `${name}'s` : 'your'} result.</h2></div>
+          <div class="rx-map-key"><span><i class="you"></i>${name || 'You'}</span><span><i class="strong"></i>Strong (70%)</span><span><i class="full"></i>Full marks</span></div>
+        </div>
+        <div class="rx-map-body">
+          <div class="rx-map-chart">${scoreMapSvg(cats)}</div>
+          <div class="rx-map-bars">${byScore.map(c => { const b = BAND[c.band] || BAND.developing; return `
+            <div class="rx-mbar" style="--c:${b.color}">
+              <div class="rx-mbar-top"><span class="rx-mbar-ic">${categoryIconSvg(c.label)}</span><b>${escapeHtml(c.label)}</b><em>${b.label}</em><strong>${c.score}<small>%</small></strong></div>
+              <div class="rx-mbar-track"><i data-w="${c.score}"></i><span class="rx-mbar-mark" title="Strong: 70%"></span></div>
+            </div>`; }).join('')}
+            <p class="rx-map-note">${byScore[0].score - byScore[byScore.length - 1].score >= 10 ? `Your shape leans towards <b>${escapeHtml(byScore[0].label)}</b>. Lifting <b>${escapeHtml(byScore[byScore.length - 1].label)}</b> rounds it out fastest.` : 'Your areas are evenly matched, so steady gains across the board will lift your whole score.'}</p>
+          </div>
+        </div>
+      </section>` : '';
+
     // 4. the category deep-dive (biggest opportunity first)
     const ordered = cats.length > 1 ? [weakest, ...cats.filter(c => c.key !== weakest.key && c.key !== strongest.key), strongest] : cats;
     const catBlock = cats.length ? `
       <section class="rx-section">
-        <p class="rx-kicker">Your breakdown</p>
-        <h2 class="rx-h2">Where you stand, area by area.</h2>
+        <p class="rx-kicker">${cats.length > 1 ? 'Area by area' : 'Your breakdown'}</p>
+        <h2 class="rx-h2">${cats.length > 1 ? 'What each area means for you.' : 'Where you stand, area by area.'}</h2>
         <div class="rx-cats">${ordered.map((c, i) => {
           const b = BAND[c.band] || BAND.developing;
           const badge = cats.length > 1 && c.key === weakest.key && showPair ? '<span class="rx-badge op">Biggest opportunity</span>' : cats.length > 1 && c.key === strongest.key && showPair ? '<span class="rx-badge st">Your strength</span>' : '';
@@ -469,18 +525,38 @@
       </section>` : '';
 
     // 6. the next step
+    // the plan ticket: their own score, a realistic target, and the areas to focus on, so the offer feels made for them
+    const goalPct = Math.min(100, Math.max(p.overall + 15, p.overall >= 70 ? 95 : 80));
+    const focus = [...cats].sort((a, b) => a.score - b.score).slice(0, 3);
     const ctaBlock = hasCta ? `
-      <section class="rx-cta" id="rx-cta">
-        <div class="rx-cta-glow"></div>
-        <p class="rx-kicker light">Your next step</p>
-        <h2>${escapeHtml(p.ctaHeadline || `${p.greetingName}, let's turn this into results`)}</h2>
-        <p class="rx-cta-text">${escapeHtml(p.recommendation)}</p>
-        <a class="rx-btn big" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener">${ctaLabel}${arrow}</a>
-        <ul class="rx-why">
-          <li><span>Built around <b>your</b> answers, not a generic pitch</span></li>
-          ${cats.length > 1 ? `<li><span>Start with <b>${escapeHtml(weakest.label)}</b>, your quickest win</span></li>` : '<li><span>Know exactly where to start</span></li>'}
-          <li><span>Best done while your result is fresh</span></li>
-        </ul>
+      <section class="rx-offer" id="rx-cta">
+        <div class="rx-offer-ring" aria-hidden="true"></div>
+        <div class="rx-offer-in">
+          <div class="rx-offer-mesh" aria-hidden="true"></div>
+          <div class="rx-offer-copy">
+            <span class="rx-offer-live"><i></i>Your next step</span>
+            <h2>${escapeHtml(p.ctaHeadline || `${p.greetingName}, let's turn this into results`)}</h2>
+            <p class="rx-offer-text">${escapeHtml(p.recommendation)}</p>
+            <ul class="rx-offer-why">
+              <li>Built around <b>your</b> answers, not a generic pitch</li>
+              ${cats.length > 1 ? `<li>Starts with <b>${escapeHtml(weakest.label)}</b>, your quickest win</li>` : '<li>Know exactly where to start</li>'}
+              <li>Best done while your result is fresh</li>
+            </ul>
+            <a class="rx-offer-btn" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener"><span>${ctaLabel}</span>${arrow}</a>
+            <p class="rx-offer-fine">${brandName ? `With ${escapeHtml(brandName)} · ` : ''}takes a minute to get started</p>
+          </div>
+          <aside class="rx-ticket" aria-label="Your plan">
+            <div class="rx-ticket-top"><span>Your plan</span><em>${name ? `Prepared for ${name}` : 'Prepared for you'}</em></div>
+            <div class="rx-ticket-jump">
+              <div><small>Today</small><b>${p.overall}%</b></div>
+              <svg viewBox="0 0 60 20" aria-hidden="true"><path d="M2 14 C 20 14, 30 4, 56 4" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 4"/><path d="M50 0 L57 4 L50 8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              <div class="goal"><small>Your target</small><b>${goalPct}%+</b></div>
+            </div>
+            ${focus.length ? `<div class="rx-ticket-focus"><small>Focus areas</small>${focus.map((c, i) => `<div class="rx-ticket-row"><span>${i + 1}</span><b>${escapeHtml(c.label)}</b><em style="--c:${(BAND[c.band] || BAND.developing).color}">${c.score}%</em></div>`).join('')}</div>` : ''}
+            <div class="rx-ticket-tear" aria-hidden="true"></div>
+            <div class="rx-ticket-foot"><span>${escapeHtml(scorecard.title || 'Your scorecard')}</span><span class="rx-stamp">${escapeHtml(p.tierLabel)}</span></div>
+          </aside>
+        </div>
       </section>` : (p.recommendation ? `
       <section class="rx-cta soft"><p class="rx-kicker">Your next step</p><h2>${escapeHtml(p.ctaHeadline || 'Want to go deeper on your results?')}</h2><p class="rx-cta-text">${escapeHtml(p.recommendation)}</p></section>` : '');
 
@@ -496,7 +572,7 @@
         </div>
       </section>`;
 
-    root.innerHTML = `<div class="rx">${hero}${pair}${gapBlock}${catBlock}${insBlock}${ctaBlock}${keep}</div>
+    root.innerHTML = `<div class="rx">${hero}${pair}${mapBlock}${gapBlock}${catBlock}${insBlock}${ctaBlock}${keep}</div>
       ${hasCta ? `<div class="rx-sticky" id="rx-sticky" aria-hidden="true"><span><b>${p.overall}%</b> ${cats.length > 1 ? `· your quickest win is ${escapeHtml(weakest.label)}` : `· ${escapeHtml(p.tierLabel)}`}</span><a class="rx-btn" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener" tabindex="-1">${ctaLabel}${arrow}</a></div>` : ''}`;
     document.body.classList.add('is-result');
     const bar = document.querySelector('.demo-progress-wrap');
@@ -519,6 +595,13 @@
     else {
       const io = new IntersectionObserver((entries) => entries.forEach(en => { if (en.isIntersecting) { grow(en.target); io.unobserve(en.target); } }), { threshold: 0.3 });
       bars.forEach(b => io.observe(b));
+    }
+
+    // the score map draws itself when it scrolls into view
+    const map = document.getElementById('rx-map');
+    if (map) {
+      if (reduce || !('IntersectionObserver' in window)) map.classList.add('in');
+      else { const mo = new IntersectionObserver(([e]) => { if (e.isIntersecting) { map.classList.add('in'); mo.disconnect(); } }, { threshold: 0.25 }); mo.observe(map); }
     }
 
     // categories open and close
