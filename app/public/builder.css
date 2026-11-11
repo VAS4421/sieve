@@ -304,3 +304,12 @@ body.no-sub .sb-sub, body.no-panel .sb-panel { padding: 0; border: 0; overflow: 
 .sb-answers.scale .sb-ans { flex-direction: column; text-align: center; gap: 6px; padding: 10px 6px; }
 .sb-answers.scale .sb-ans-t { font-size: 12px; }
 .sb-ans.help { border-style: dashed; }
+
+/* ---------- Landing sections + lead form placement ---------- */
+.sb-mb { margin-bottom: 6px; }
+.sb-land-list { margin: 14px auto 6px; max-width: 420px; padding: 12px 16px; border-radius: 12px; background: var(--surface-sunk); font-size: 14px; font-weight: 600; display: grid; gap: 5px; text-align: left; }
+.sb-land-list b { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); }
+.sb-land-aud { text-align: center; color: var(--ink-soft); font-size: 13px; margin: 8px 0 0; }
+.sb-land-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 420px; margin: 14px auto 0; }
+.sb-land-fields span { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--ink-faint); background: #fff; }
+.sb-land-trust { text-align: center; color: var(--ink-faint); font-size: 12px; margin: 10px 0 0; }

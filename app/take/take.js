@@ -54,10 +54,76 @@
   let startTime = null;
   const pc = scorecard.profileCapture || { enabled: false };
 
+  // Lead form placement and landing sections (owner settings, see builder).
+  const lc = scorecard.leadCapture || { position: 'start', phone: 'required' };
+  const landing = scorecard.landing || {};
+  const formAtEnd = lc.position === 'end';
+  let leadCaptured = false;
+
   function render() {
     if (step === -1) return renderGate();
-    if (step >= scorecard.questions.length) return renderResult();
+    if (step >= scorecard.questions.length) return (formAtEnd && !leadCaptured) ? renderLeadForm() : renderResult();
     renderQuestion();
+  }
+
+  function leadFieldsHtml() {
+    return `
+          <div class="demo-gate-row">
+            <input type="text" id="g-first" placeholder="First name" autocomplete="given-name" />
+            <input type="text" id="g-last" placeholder="Last name" autocomplete="family-name" />
+          </div>
+          ${lc.phone === 'off' ? '' : `<input type="tel" id="g-phone" placeholder="Phone number${lc.phone === 'optional' ? ' (optional)' : ''}" autocomplete="tel" />`}
+          <input type="email" id="g-email" placeholder="Email" autocomplete="email" />
+          ${profileFieldsHtml()}`;
+  }
+
+  // Reads and checks the lead fields; returns true when they are complete.
+  function readLeadFields(errorEl) {
+    errorEl.style.display = 'none';
+    const val = (id) => (document.getElementById(id) ? document.getElementById(id).value.trim() : '');
+    const required = ['g-first', 'g-last', 'g-email'].concat(lc.phone === 'required' ? ['g-phone'] : []);
+    if (required.some(id => !val(id))) {
+      errorEl.textContent = lc.phone === 'required' ? 'Please fill in your name, phone number, and email.' : 'Please fill in your name and email.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('g-email'))) {
+      errorEl.textContent = 'Please check your email address.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+    if (pc.enabled) {
+      const requiredIds = [
+        pc.captureAge && 'p-age', pc.captureGender && 'p-gender',
+        pc.captureLocation && 'p-location', pc.captureSocialClass && 'p-social',
+        (pc.interestOptions && pc.interestOptions.length) && 'p-interest',
+      ].filter(Boolean);
+      if (requiredIds.some(id => !document.getElementById(id).value)) {
+        errorEl.textContent = 'Please answer every field above.';
+        errorEl.style.display = 'block';
+        return false;
+      }
+      profile = {
+        ...(pc.captureAge ? { ageRange: document.getElementById('p-age').value } : {}),
+        ...(pc.captureGender ? { gender: document.getElementById('p-gender').value } : {}),
+        ...(pc.captureLocation ? { location: document.getElementById('p-location').value } : {}),
+        ...(pc.captureSocialClass ? { socialClass: document.getElementById('p-social').value } : {}),
+        ...((pc.interestOptions && pc.interestOptions.length) ? { interest: document.getElementById('p-interest').value } : {}),
+      };
+    }
+    lead = { firstName: val('g-first'), lastName: val('g-last'), phone: val('g-phone'), email: val('g-email') };
+    leadCaptured = true;
+    return true;
+  }
+
+  function landingExtrasHtml(onCover) {
+    const n = scorecard.questions.length;
+    const mins = Math.max(1, Math.round(n * 0.2));
+    const bullets = (landing.bullets || []).filter(Boolean);
+    return `
+        ${bullets.length ? `<div class="tk-land-list ${onCover ? 'on-cover' : ''}"><b>What you'll find out</b><ul>${bullets.map(b => `<li><i aria-hidden="true">✓</i><span>${escapeHtml(b)}</span></li>`).join('')}</ul></div>` : ''}
+        ${landing.audience ? `<p class="tk-land-aud ${onCover ? 'on-cover' : ''}">${escapeHtml(landing.audience)}</p>` : ''}
+        <div class="tk-land-meta ${onCover ? 'on-cover' : ''}"><span>⏱ About ${mins} min</span><span>${n} questions</span><span>Free and private</span></div>`;
   }
 
   function profileFieldsHtml() {
@@ -85,19 +151,16 @@
 
   function renderGate() {
     const cover = scorecard.coverImage && scorecard.coverImage.trim();
+    const startLabel = escapeHtml(landing.button || (formAtEnd ? 'Start the scorecard →' : 'Start →'));
     const gateInner = `
         <div class="demo-q" style="margin-bottom:10px;">${escapeHtml(scorecard.title)}</div>
-        <p style="text-align:center;color:var(--ink-soft);font-size:14.5px;margin-bottom:26px;">${escapeHtml(scorecard.intro || '')}</p>
+        <p class="tk-land-intro">${escapeHtml(scorecard.intro || '')}</p>
+        ${landingExtrasHtml(!!cover)}
         <div class="demo-gate">
-          <div class="demo-gate-row">
-            <input type="text" id="g-first" placeholder="First name" />
-            <input type="text" id="g-last" placeholder="Last name" />
-          </div>
-          <input type="tel" id="g-phone" placeholder="Phone number" />
-          <input type="email" id="g-email" placeholder="Email" />
-          ${profileFieldsHtml()}
-          <button class="btn btn-accent btn-block" id="g-start">Start →</button>
+          ${formAtEnd ? '' : leadFieldsHtml()}
+          <button class="btn btn-accent btn-block" id="g-start">${startLabel}</button>
           <p id="g-error" class="demo-gate-error" style="display:none;"></p>
+          ${landing.trust ? `<p class="tk-land-trust">${escapeHtml(landing.trust)}</p>` : ''}
         </div>
     `;
     root.innerHTML = cover
@@ -107,43 +170,7 @@
       : `<div class="demo-body">${gateInner}</div>`;
     document.getElementById('g-start').addEventListener('click', () => {
       const errorEl = document.getElementById('g-error');
-      errorEl.style.display = 'none';
-
-      const coreMissing = ['g-first', 'g-last', 'g-phone', 'g-email']
-        .some(id => !document.getElementById(id).value.trim());
-      if (coreMissing) {
-        errorEl.textContent = 'Please fill in your name, phone number, and email before starting.';
-        errorEl.style.display = 'block';
-        return;
-      }
-
-      if (pc.enabled) {
-        const requiredIds = [
-          pc.captureAge && 'p-age', pc.captureGender && 'p-gender',
-          pc.captureLocation && 'p-location', pc.captureSocialClass && 'p-social',
-          (pc.interestOptions && pc.interestOptions.length) && 'p-interest',
-        ].filter(Boolean);
-        const missing = requiredIds.some(id => !document.getElementById(id).value);
-        if (missing) {
-          errorEl.textContent = 'Please answer every field above before starting.';
-          errorEl.style.display = 'block';
-          return;
-        }
-        profile = {
-          ...(pc.captureAge ? { ageRange: document.getElementById('p-age').value } : {}),
-          ...(pc.captureGender ? { gender: document.getElementById('p-gender').value } : {}),
-          ...(pc.captureLocation ? { location: document.getElementById('p-location').value } : {}),
-          ...(pc.captureSocialClass ? { socialClass: document.getElementById('p-social').value } : {}),
-          ...((pc.interestOptions && pc.interestOptions.length) ? { interest: document.getElementById('p-interest').value } : {}),
-        };
-      }
-
-      lead = {
-        firstName: document.getElementById('g-first').value.trim(),
-        lastName: document.getElementById('g-last').value.trim(),
-        phone: document.getElementById('g-phone').value.trim(),
-        email: document.getElementById('g-email').value.trim(),
-      };
+      if (!formAtEnd && !readLeadFields(errorEl)) return;
       startTime = Date.now();
       // Fire-and-forget — powers the completion-rate figure in the owner's
       // aggregate report; never blocks the visitor moving to question 1.
@@ -245,6 +272,31 @@
       document.getElementById('d-next').addEventListener('click', () => advance(box.value.trim()));
       document.getElementById('d-skip').addEventListener('click', () => advance(''));
     }
+  }
+
+  // Lead form after the last question (when the owner places it at the end):
+  // the result is ready, we just ask where to send it.
+  function renderLeadForm() {
+    renderProgress();
+    const name = scorecard.brandName ? escapeHtml(scorecard.brandName) : '';
+    root.innerHTML = `
+      <div class="demo-body tk-leadform">
+        <div class="demo-back" id="d-back">← Back</div>
+        <div class="tk-ready"><span class="tk-ready-dot" aria-hidden="true"></span>Your result is ready</div>
+        <div class="demo-q" style="margin-bottom:8px;">${escapeHtml(lc.headline || 'Where should we send your result?')}</div>
+        <p class="tk-hint" style="margin:0 0 22px;">${escapeHtml(lc.note || `Your score and personal report will show on the next screen${name ? `, and ${name} will send you a copy` : ''}.`)}</p>
+        <div class="demo-gate">
+          ${leadFieldsHtml()}
+          <button class="btn btn-accent btn-block" id="g-see">See my result →</button>
+          <p id="g-error" class="demo-gate-error" style="display:none;"></p>
+        </div>
+      </div>`;
+    document.getElementById('d-back').addEventListener('click', () => { step = scorecard.questions.length - 1; render(); });
+    document.getElementById('g-see').addEventListener('click', () => {
+      if (!readLeadFields(document.getElementById('g-error'))) return;
+      render();
+    });
+    const first = document.getElementById('g-first'); if (first) first.focus();
   }
 
   const BAND_COLOR = { strong: '#16825D', developing: '#B3720C', weak: '#B3261E' };

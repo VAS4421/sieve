@@ -87,6 +87,9 @@
   const tierMax = (i) => { const s = sortedTiers(), pos = s.findIndex(x => x.i === i); return pos > 0 ? s[pos - 1].t.min - 1 : 100; };
   const catColor = (key) => COLORS[Math.max(0, state.categories.findIndex(c => c.key === key)) % COLORS.length];
   const qCats = (qi) => { const q = state.questions[qi]; if (!q || q.kind === 'about') return []; const on = new Set(activeCats[qi] || []); (q.cats || []).forEach(k => on.add(k)); state.categories.forEach(c => { if ((q.options || []).some(o => Number(o.score?.[c.key] || 0) !== 0)) on.add(c.key); }); return state.categories.filter(c => on.has(c.key)); };
+  // lead form placement + landing sections, kept inside the profileCapture settings blob
+  const LC = () => { const pc = state.profileCapture || (state.profileCapture = {}); return (pc.leadCapture ||= { position: 'start', phone: 'required', headline: '', note: '' }); };
+  const LAND = () => { const pc = state.profileCapture || (state.profileCapture = {}); const l = (pc.landing ||= { bullets: [], audience: '', trust: '', button: '' }); l.bullets ||= []; return l; };
   const isAboutQ = (q) => q && q.kind === 'about';
   const isTextQ = (q) => isAboutQ(q) && q.format === 'text';
   const isGenQ = (q) => q && !isAboutQ(q) && (q.format === 'yesno' || q.format === 'scale');
@@ -144,12 +147,12 @@
             <span class="sb-odots">${isAboutQ(q) ? '<em class="sb-about-tag" title="About you, not scored">About</em>' : ''}${qCats(i).map(c => `<i style="background:${catColor(c.key)}" title="${esc(c.label)}"></i>`).join('')}</span>
           </div>`).join('')}</div>
         <button class="sb-add" id="add-q">${svg(I.plus)}Add question</button>
-        <div class="sb-flow muted">${svg(I.user)}<span>Lead details<small>Name, phone, email</small></span></div>
+        <button class="sb-flow" data-golanding>${svg(I.user)}<span>Lead details<small>${LC().position === 'end' ? 'After the questions' : 'Before the questions'} · ${LC().phone === 'off' ? 'name, email' : 'name, phone, email'}</small></span></button>
         <button class="sb-flow" data-goresults>${svg(I.flag)}<span>Result page</span></button>
         <div class="sb-sub-head" style="margin-top:14px"><b>Categories</b><span>${state.categories.length}</span></div>
         <div class="sb-cats">${state.categories.map((c, i) => `<button class="sb-cat ${SEL.type === 'cat' && SEL.i === i ? 'on' : ''}" data-cat="${i}"><i style="background:${catColor(c.key)}"></i><span>${esc(c.label)}</span><small>${state.questions.filter((q, qi) => qCats(qi).some(x => x.key === c.key)).length} q</small></button>`).join('')}</div>
         <button class="sb-add" id="add-cat">${svg(I.plus)}Add category</button>`;
-      $('[data-golanding]', el).onclick = () => go('landing');
+      $$('[data-golanding]', el).forEach(x => x.onclick = () => go('landing'));
       $('[data-goresults]', el).onclick = () => go('results');
       $$('[data-oq]', el).forEach(o => o.onclick = () => { SEL = { type: 'q', i: +o.dataset.oq }; drawSub(); drawCanvas(); drawPanel(); });
       $$('[data-cat]', el).forEach(b => b.onclick = () => { SEL = { type: 'cat', i: +b.dataset.cat }; drawSub(); drawCanvas(); drawPanel(); });
@@ -204,8 +207,12 @@
           ${editable('brand', state.brandName || '', brand(), 'sb-brand')}
           ${editable('title', state.title, 'Your scorecard title', 'sb-h1')}
           ${editable('intro', state.intro, 'One or two sentences on what they will find out.', 'sb-intro', true)}
-          <div class="sb-meta"><span>⏱ ${Math.max(1, Math.round(n * 0.25))} min</span><span>${n} question${n === 1 ? '' : 's'}</span><span>Free</span></div>
-          <div class="sb-start">Start the scorecard →</div>
+          ${LAND().bullets.filter(Boolean).length ? `<div class="sb-land-list"><b>What you'll find out</b>${LAND().bullets.filter(Boolean).map(x => `<div>✓ ${esc(x)}</div>`).join('')}</div>` : ''}
+          ${LAND().audience ? `<p class="sb-land-aud">${esc(LAND().audience)}</p>` : ''}
+          <div class="sb-meta"><span>⏱ ${Math.max(1, Math.round(n * 0.2))} min</span><span>${n} question${n === 1 ? '' : 's'}</span><span>Free</span></div>
+          ${LC().position === 'end' ? '' : `<div class="sb-land-fields"><span>First name</span><span>Last name</span>${LC().phone === 'off' ? '' : `<span>Phone${LC().phone === 'optional' ? ' (optional)' : ''}</span>`}<span>Email</span></div>`}
+          <div class="sb-start">${esc(LAND().button || (LC().position === 'end' ? 'Start the scorecard →' : 'Start →'))}</div>
+          ${LAND().trust ? `<p class="sb-land-trust">${esc(LAND().trust)}</p>` : ''}
         </div></div>`;
     } else if (AREA === 'questions') {
       if (SEL.type === 'cat') {
@@ -294,8 +301,25 @@
             <div class="sb-row">${state.coverImage ? '<button class="sb-link danger" id="cover-remove">Remove</button>' : ''}<button class="sb-link" id="cover-url-t">Use an image link</button></div>
             <input id="f-cover-url" class="sb-in" placeholder="https://…" value="${esc(state.coverImage || '')}" hidden /></div>
           <div class="sb-group"><div class="sb-gt">Intro ideas</div><div class="sb-chips">${['Answer a few quick questions and get your personal score in 2 minutes.', 'Find out where you stand, and exactly what to do next.', 'Free, private and instant.'].map(t => `<button class="sb-chip" data-intro="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>
+          <div class="sb-group"><div class="sb-gt">What they'll find out <span class="sb-opt">Optional</span></div>
+            ${[0, 1, 2, 3].map(i => `<input class="sb-in sb-mb" data-bullet="${i}" maxlength="120" value="${esc(LAND().bullets[i] || '')}" placeholder="${['e.g. Your score in 3 key areas', 'e.g. The one thing holding you back', 'e.g. Simple steps to fix it this month', 'Another benefit (optional)'][i]}" />`).join('')}</div>
+          ${field('Who it\'s for <span class="sb-opt">Optional</span>', `<input id="l-aud" class="sb-in" maxlength="200" value="${esc(LAND().audience)}" placeholder="e.g. For salon owners with 1 to 10 staff" />`)}
+          ${field('Button text <span class="sb-opt">Optional</span>', `<input id="l-btn" class="sb-in" maxlength="40" value="${esc(LAND().button)}" placeholder="${LC().position === 'end' ? 'Start the scorecard →' : 'Start →'}" />`)}
+          ${field('Trust line <span class="sb-opt">Optional</span>', `<input id="l-trust" class="sb-in" maxlength="200" value="${esc(LAND().trust)}" placeholder="e.g. Taken by 2,000+ business owners. We never share your details." />`)}
+          <div class="sb-group"><div class="sb-gt">Lead form</div>
+            <div class="sb-seg">${[['start', 'Before questions'], ['end', 'After questions']].map(([k, l]) => `<button class="${LC().position === k ? 'on' : ''}" data-lcpos="${k}">${l}</button>`).join('')}</div>
+            <small class="sb-hint">${LC().position === 'end' ? 'People answer first, then give their details to see the result. Usually more people finish.' : 'People give their details first. You also catch people who stop halfway (for follow-up emails on Business plans and up).'}</small>
+            <div class="sb-gt" style="margin-top:12px">Phone number</div>
+            <div class="sb-seg">${[['required', 'Required'], ['optional', 'Optional'], ['off', 'Don\'t ask']].map(([k, l]) => `<button class="${LC().phone === k ? 'on' : ''}" data-lcphone="${k}">${l}</button>`).join('')}</div>
+            ${LC().position === 'end' ? `${field('Form headline <span class="sb-opt">Optional</span>', `<input id="lc-head" class="sb-in" maxlength="120" value="${esc(LC().headline)}" placeholder="Where should we send your result?" />`)}${field('Line under it <span class="sb-opt">Optional</span>', `<input id="lc-note" class="sb-in" maxlength="200" value="${esc(LC().note)}" placeholder="Your score and personal report show on the next screen." />`)}` : ''}
+          </div>
           <div class="sb-group"><div class="sb-gt">Tips</div><ul class="sb-tips"><li>Ask a question in the title: "How ready is your business to grow?"</li><li>Promise a result and a time: "Get your score in 2 minutes."</li></ul></div>
         </div>`;
+      $$('[data-bullet]', p).forEach(inp => inp.oninput = () => { const L = LAND(); L.bullets[+inp.dataset.bullet] = inp.value; changed(); clearTimeout(window.__landT); window.__landT = setTimeout(drawCanvas, 300); });
+      [['l-aud', 'audience'], ['l-btn', 'button'], ['l-trust', 'trust']].forEach(([id, k]) => { $('#' + id).oninput = (e) => { LAND()[k] = e.target.value; changed(); clearTimeout(window.__landT); window.__landT = setTimeout(drawCanvas, 300); }; });
+      $$('[data-lcpos]', p).forEach(b => b.onclick = () => { LC().position = b.dataset.lcpos; changed(); drawAll(); });
+      $$('[data-lcphone]', p).forEach(b => b.onclick = () => { LC().phone = b.dataset.lcphone; changed(); drawAll(); });
+      [['lc-head', 'headline'], ['lc-note', 'note']].forEach(([id, k]) => { const el = $('#' + id); if (el) el.oninput = (e) => { LC()[k] = e.target.value; changed(); }; });
       const drop = $('#cover-drop'), input = $('#cover-upload-input');
       drop.onclick = () => input.click(); drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over');
       drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) uploadCover(e.dataTransfer.files[0]); };
@@ -486,7 +510,7 @@
     const fields = [['captureAge', 'Age range'], ['captureGender', 'Gender'], ['captureLocation', 'State (location)'], ['captureSocialClass', 'Income bracket']];
     c.innerHTML = `<div class="sb-doc">
       <h1>Settings</h1>
-      <div class="sb-card"><div class="sb-card-h"><div><h3>Lead details</h3><p>Before their result, every lead gives their first name, last name, phone number and email.</p></div><span class="sb-badge">Always on</span></div></div>
+      <div class="sb-card"><div class="sb-card-h"><div><h3>Lead details</h3><p>Every lead gives their name and email${LC().phone === 'required' ? ' and phone number' : LC().phone === 'optional' ? ' (phone is optional)' : ''}, ${LC().position === 'end' ? 'after the questions, just before their result' : 'before the first question'}. Change this on the Landing page.</p></div><span class="sb-badge">Always on</span></div></div>
       <div class="sb-card ${pc.enabled ? 'on' : ''}"><div class="sb-card-h"><div><h3>Audience insights <span class="sb-tag">Signal Desk</span></h3><p>Ask a few profile questions for a brand campaign. Powers the Brand Campaign Insight Report.</p></div><label class="sb-switch"><input type="checkbox" id="pc-enabled" ${pc.enabled ? 'checked' : ''}><span></span></label></div>
         ${pc.enabled ? `<div class="sb-card-b"><div class="sb-gt">What to ask</div><div class="sb-chips">${fields.map(([k, l]) => `<button class="sb-chip tog ${pc[k] ? 'on' : ''}" data-pc="${k}" style="--c:#3B5BFD">${pc[k] ? '✓ ' : '+ '}${l}</button>`).join('')}</div>
           ${field('Interest question <span class="sb-opt">Optional</span>', `<input id="pc-q" class="sb-in" value="${esc(pc.interestQuestion || '')}" placeholder="e.g. Which best describes your interest in [Brand]?" />`)}

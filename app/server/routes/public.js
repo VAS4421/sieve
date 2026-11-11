@@ -102,6 +102,12 @@ async function billingGate(scorecardRow) {
 // Shapes the profile-capture config for the public gate — the option lists a
 // visitor picks from live here (never invented client-side), so aggregation
 // in the report always lines up cleanly against a fixed vocabulary.
+// Landing sections and lead-form settings the quiz page needs.
+function publicPageSettings(row) {
+  const pc = parseProfileCapture(row.profile_capture);
+  return { leadCapture: pc.leadCapture, landing: pc.landing };
+}
+
 function publicProfileCapture(row) {
   const pc = parseProfileCapture(row.profile_capture);
   if (!pc.enabled) return { enabled: false };
@@ -168,6 +174,7 @@ router.get('/scorecards/:slug', async (req, res, next) => {
       engagementMode: !!row.engagement_mode,
       shareTemplate: row.share_template || '',
       profileCapture: publicProfileCapture(row),
+      ...publicPageSettings(row),
       questions,
     });
   } catch (err) {
@@ -199,8 +206,10 @@ router.post('/scorecards/:slug/submit', submitLimiter, async (req, res, next) =>
 
     const checked = validateAnswers(questions, (req.body || {}).answers);
     if (checked.error && checked.error.startsWith('Answers do not match')) return res.status(400).json({ error: checked.error });
-    if (!firstName?.trim() || !lastName?.trim() || !phone?.trim() || !email?.trim()) {
-      return res.status(400).json({ error: 'Name, phone number, and email are required.' });
+    const { leadCapture } = parseProfileCapture(row.profile_capture);
+    const phoneNeeded = leadCapture.phone === 'required';
+    if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || (phoneNeeded && !phone?.trim())) {
+      return res.status(400).json({ error: phoneNeeded ? 'Name, phone number, and email are required.' : 'Name and email are required.' });
     }
     if (checked.error) return res.status(400).json({ error: checked.error });
     const { answers } = checked;
@@ -350,4 +359,5 @@ router.get('/leads/:leadId/report.pdf', async (req, res) => {
 
 module.exports = router;
 module.exports.publicProfileCapture = publicProfileCapture;
+module.exports.publicPageSettings = publicPageSettings;
 module.exports.resolveBrandName = resolveBrandName;

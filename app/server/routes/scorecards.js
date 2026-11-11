@@ -9,7 +9,7 @@ const requireAuth = require('../middleware/requireAuth');
 const { computeScore } = require('../scoring');
 const { buildPersonalizedResult } = require('../personalize');
 const { publicQuestion, validateAnswers, normalizeQuestion, questionError } = require('../questions');
-const { publicProfileCapture, resolveBrandName } = require('./public');
+const { publicProfileCapture, publicPageSettings, resolveBrandName } = require('./public');
 const { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture } = require('../demographics');
 const { appUrl } = require('../mailer');
 
@@ -476,6 +476,7 @@ router.get('/preview/:slug', async (req, res, next) => {
       engagementMode: !!row.engagement_mode,
       shareTemplate: row.share_template || '',
       profileCapture: publicProfileCapture(row),
+      ...publicPageSettings(row),
       questions,
       preview: true,
     });

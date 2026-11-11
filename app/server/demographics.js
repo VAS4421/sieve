@@ -34,6 +34,35 @@ function sanitizeProfileCapture(input) {
     interestOptions: Array.isArray(pc.interestOptions)
       ? pc.interestOptions.map(o => String(o).trim()).filter(Boolean).slice(0, 12)
       : [],
+    leadCapture: sanitizeLeadCapture(pc.leadCapture),
+    landing: sanitizeLanding(pc.landing),
+  };
+}
+
+// Where the lead form sits and what it asks. Stored inside the scorecard's
+// existing settings JSON (profile_capture), so no new database columns.
+//   position 'start' — before the questions (the original behaviour)
+//   position 'end'   — after the questions, just before the result
+function sanitizeLeadCapture(input) {
+  const lc = input && typeof input === 'object' ? input : {};
+  const str = (v, n) => String(v || '').trim().slice(0, n);
+  return {
+    position: lc.position === 'end' ? 'end' : 'start',
+    phone: ['required', 'optional', 'off'].includes(lc.phone) ? lc.phone : 'required',
+    headline: str(lc.headline, 120),
+    note: str(lc.note, 200),
+  };
+}
+
+// Extra landing page sections shown before the first question.
+function sanitizeLanding(input) {
+  const l = input && typeof input === 'object' ? input : {};
+  const str = (v, n) => String(v || '').trim().slice(0, n);
+  return {
+    bullets: Array.isArray(l.bullets) ? l.bullets.map(b => str(b, 120)).filter(Boolean).slice(0, 4) : [],
+    audience: str(l.audience, 200),
+    trust: str(l.trust, 200),
+    button: str(l.button, 40),
   };
 }
 
@@ -47,4 +76,4 @@ function parseProfileCapture(rawJson) {
   return sanitizeProfileCapture(parsed);
 }
 
-module.exports = { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture };
+module.exports = { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture, sanitizeLeadCapture, sanitizeLanding };
