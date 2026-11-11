@@ -66,7 +66,7 @@ function sanitizeIntegrations(input) {
 
 // Which result sections show, and in what order. The score reveal always
 // comes first; everything else can be moved or hidden.
-const RESULT_SECTIONS = ['signs', 'pair', 'map', 'gap', 'areas', 'answers', 'told', 'cta'];
+const RESULT_SECTIONS = ['signs', 'pair', 'map', 'gap', 'areas', 'told', 'cta'];
 function sanitizeResults(input) {
   const r = input && typeof input === 'object' ? input : {};
   const order = Array.isArray(r.order) ? r.order.filter((k, i, a) => RESULT_SECTIONS.includes(k) && a.indexOf(k) === i) : [];

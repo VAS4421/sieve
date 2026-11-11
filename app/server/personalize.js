@@ -52,34 +52,34 @@ function bandFor(score) {
 // result feel like genuine help rather than a verdict.
 const CATEGORY_BASE = {
   exceptional: [
-    l => `${l} is firing on all cylinders — genuinely one of the strongest parts of this whole result. It's clear you've already put real thought into this, and it shows in how consistently your answers pointed the same direction. Whatever you're doing here, it's working — the priority now is protecting it, not fixing it.`,
-    l => `There's very little to fault in ${l.toLowerCase()} — this is close to as good as it gets at this stage. It's the kind of foundation that makes everything else easier to build on, so it's worth recognising rather than taking for granted. Keep doing what got you here.`,
-    l => `${l} stands out as a real strength, well above where most people land on this. That's not an accident — it usually reflects real preparation and honest self-awareness going in. From here, the smartest move is simply not to let this slip while you focus energy elsewhere.`,
+    l => `You have ${l.toLowerCase()} fully in place. It is done the same way every time, so it holds up on busy weeks as well as quiet ones.`,
+    l => `${l} is a settled strength for you. The habits are clear, they are repeated, and they no longer depend on someone remembering.`,
+    l => `You have this area working consistently. What happens here is planned, done and checked, and it supports everything else in your result.`,
   ],
   strong: [
-    l => `${l} is in good shape — solidly ahead of where most people sit at this point. You're clearly not starting from zero here, and that head start matters more than it might feel like right now. A little more focused attention would be enough to push this from good to genuinely excellent.`,
-    l => `You're doing well on ${l.toLowerCase()}, with just a little more headroom above you. This is a real strength worth building on rather than a gap that needs urgent fixing. The next honest step is deciding whether to lean further into it or shift your energy toward whatever's holding the rest of the picture back.`,
-    l => `${l} is a genuine strength — a small, deliberate push here would put it firmly in the top tier. There's nothing urgent to fix, which is exactly why this is a good place to keep investing a little more. It's already carrying real weight in your overall result.`,
+    l => `You have most of what ${l.toLowerCase()} needs, but a few habits still depend on effort rather than routine. It works well most of the time, and the gap now is consistency, not know-how.`,
+    l => `${l} is in good shape, but not yet automatic. The basics are there; one or two things still slip when you get busy.`,
+    l => `You have a strong base in ${l.toLowerCase()}, with a little room left. A small, steady push would make it something you rarely have to think about.`,
   ],
   solid: [
-    l => `${l} is respectable — not a weak point, but not yet a standout either. This is the kind of area that's easy to overlook precisely because nothing about it is alarming, but there's a realistic, achievable path from here to genuinely strong. A bit of deliberate focus would move this meaningfully.`,
-    l => `You're right around the middle on ${l.toLowerCase()} — steady, with clear room to push further. Nothing here is holding you back in any dramatic way, but it's also not yet doing the heavy lifting it could be. Worth a closer look next, once anything more urgent is handled.`,
-    l => `${l} sits in reasonably good territory, with a realistic path to genuinely strong from here. It's neither the reason you'd hesitate nor the reason you'd feel fully confident — which usually means it just hasn't had focused attention yet. That makes it one of the more straightforward things to improve.`,
+    l => `You have some of the right habits in ${l.toLowerCase()}, but they are not used every time. Parts of it run well; others still rely on memory and who happens to be involved.`,
+    l => `${l} works, but it is uneven. Good weeks look very different from busy ones, so results rise and fall.`,
+    l => `You have the foundations for ${l.toLowerCase()}, but not yet the routine. The intention is clear; it just is not repeated often enough to rely on.`,
   ],
   developing: [
-    l => `${l} is still finding its footing — there's real, achievable room to grow here, and that's genuinely good news. Gaps at this stage are almost always about attention, not ability — this isn't a fundamental problem, it's an unfinished one. Naming it clearly, like this result just did, is usually the hardest part.`,
-    l => `${l} is a fair way off where it could be, and it's worth some deliberate, honest attention rather than being left to sort itself out. The encouraging part is that this kind of gap tends to close faster than people expect once it's actually being worked on. Right now it's likely quietly weighing on the rest of your picture.`,
-    l => `You're behind where you'd want to be on ${l.toLowerCase()}, but it's a fixable gap, not a fundamental one. Most people carry at least one area like this — the difference is what happens next. Closing even part of this gap would change how the whole result feels, not just this one number.`,
+    l => `You have a few good habits in ${l.toLowerCase()}, but most things here happen when there is time, not by design. It works when you give it attention and slips when other things take over.`,
+    l => `${l} is partly in place. You know what good looks like, but the day-to-day habits that would make it happen are not set yet.`,
+    l => `You have made a start on ${l.toLowerCase()}, but it is inconsistent. Some things get done well, others get improvised on the day.`,
   ],
   weak: [
-    l => `${l} is genuinely lagging, and this is worth real, focused attention rather than a passing glance. It's one of the clearer weak points in the picture right now, and it's likely shaping how the rest of this feels more than any single answer suggests on its own. The honest read: this deserves to move up your priority list.`,
-    l => `There's a real gap in ${l.toLowerCase()} — closing even part of it would change the overall result noticeably. This isn't about anything being wrong with you; it usually just means this area hasn't had the attention the rest has. Naming it plainly is the first useful step toward actually closing it.`,
-    l => `${l} is well below where it needs to be — not a small tweak, a real focus area. It's easy to let a gap like this sit quietly in the background, but it's very likely doing more to hold back the overall picture than it seems. Worth treating as a genuine priority, not an afterthought.`,
+    l => `You have very little of ${l.toLowerCase()} in place yet. Things here tend to be handled as problems come up, rather than planned for.`,
+    l => `${l} is at an early stage for you. Few of the supporting habits are there, so results depend on effort and a bit of luck.`,
+    l => `You have not built ${l.toLowerCase()} up yet, and it is likely affecting other parts of your result more than it seems.`,
   ],
   struggling: [
-    l => `${l} is the clearest problem area in this whole result — and honestly, the one most worth addressing first. That's not meant as discouraging; it's the opposite; it means you now know exactly where the biggest single improvement is sitting, waiting to be made. Everything else in this result would likely look different once this gets real attention.`,
-    l => `There's a real shortfall in ${l.toLowerCase()} that's dragging on the overall picture more than any other single factor here. This is the part of the result that calls for a genuine reset rather than a minor adjustment. The upside of a clear result like this is that there's no guesswork about where to start.`,
-    l => `${l} needs the most attention of everything measured here, and it's worth being honest about that rather than smoothing it over. A result like this is uncomfortable to read, but it's also the most useful kind — it points straight at what would move the needle most. This is exactly the kind of thing worth talking through with someone who's helped others close a gap like it.`,
+    l => `You do not have ${l.toLowerCase()} in place yet. It is the area with the most room to improve, and the one where small changes will show first.`,
+    l => `${l} is the clearest gap in your result. Most of the habits that support it have not started yet.`,
+    l => `You are at the starting line with ${l.toLowerCase()}. That makes it the simplest place to begin: one steady habit here will move your score.`,
   ],
 };
 
@@ -96,20 +96,54 @@ const CATEGORY_BASE = {
 
 const CATEGORY_HEADLINE_BASE = {
   strong: [
-    l => `${l} is carrying real weight here — the job now is protecting it, not fixing it.`,
-    l => `${l} is a genuine strength. Everything else gets easier once one part of the picture is already solid.`,
-    l => `Keep leaning on ${l.toLowerCase()} — it's doing more for the overall result than it might seem.`,
+    l => `Consistent and dependable.`,
+    l => `In place and working.`,
+    l => `A strength to protect.`,
   ],
   developing: [
-    l => `${l} is steady, not yet a strength — a realistic, achievable path forward, not a fundamental problem.`,
-    l => `There's real room to grow in ${l.toLowerCase()}, and closing even part of that gap changes the whole picture.`,
-    l => `${l} is worth deliberate attention next — not urgent, but not something to leave on autopilot either.`,
+    l => `Present, but uneven.`,
+    l => `Good intentions, not yet a habit.`,
+    l => `Working in parts.`,
   ],
   weak: [
-    l => `${l} is the clearest place to focus first — closing this gap would move the whole result.`,
-    l => `A real shortfall in ${l.toLowerCase()} is worth treating as a genuine priority, not an afterthought.`,
-    l => `${l} needs the most attention of anything measured here — and now there's no guesswork about where to start.`,
+    l => `Not yet in place.`,
+    l => `The clearest gap.`,
+    l => `The place to start.`,
   ],
+};
+
+// What is typical at each stage, shown under each area as "What we usually see".
+const CATEGORY_SEEN = {
+  strong: [
+    () => 'At this level, the risk is drift: what works today gets taken for granted, then slips quietly when things get busy or people change.',
+    () => 'People who score well here usually have one or two simple routines they never skip. Protecting those routines is what keeps the score high.',
+  ],
+  developing: [
+    () => 'At this stage, the right ideas usually exist but are not written down or repeated. Results depend on who is involved and how busy the week is.',
+    () => 'This is the most common place to be. Good things happen, but not by design, so it takes more effort than it should.',
+  ],
+  weak: [
+    () => 'At this stage, most of the work here is done in a rush or when something goes wrong. It is rarely planned, so the same problems tend to come back.',
+    () => 'When an area scores this low, it is usually because nobody owns it yet. One clear owner and one simple routine change things quickly.',
+  ],
+};
+
+function categorySeen(label, band3, seed) {
+  return pick(`${seed}:seen`, CATEGORY_SEEN[band3])(label);
+}
+
+// Typical signs when the owner has not written any for this tier.
+function generatedSigns(overall, strongest, weakest) {
+  const b = bandFor(overall);
+  if (b === 'exceptional' || b === 'strong') return [`${strongest} runs without much chasing`, 'Most weeks go to plan', `${weakest} is good, but less consistent than the rest`];
+  if (b === 'solid') return ['Good work is happening, but it depends on the week', `${strongest} is a clear strength`, `${weakest} rises and falls`, 'More effort goes in than should be needed'];
+  if (b === 'developing') return ['Things go well when there is time, and slip when there is not', `${weakest} is mostly improvised`, 'Some habits exist, but they are not written down'];
+  return ['Most things are handled as they come up', `${weakest} gets little planned attention`, 'Progress depends on effort more than routine'];
+}
+
+const band3For = (score) => {
+  const b = bandFor(score);
+  return b === 'exceptional' || b === 'strong' ? 'strong' : b === 'weak' || b === 'struggling' ? 'weak' : 'developing';
 };
 
 function categoryHeadline(label, band3, seed) {
@@ -129,38 +163,38 @@ function categoryHeadline(label, band3, seed) {
 const CATEGORY_CHECKLIST_BASE = {
   strong: [
     [
-      { label: 'Protect what works', text: 'Write down what you\'re actually doing right here so it survives changes in routine, team, or attention.' },
-      { label: 'Raise the bar', text: 'A strength that stops improving quietly becomes average — set a slightly higher target here, not just a maintenance one.' },
-      { label: 'Use it as leverage', text: 'Let this be the model for the areas that need more work — whatever\'s making this strong is probably transferable.' },
+      { label: 'Write down what works', text: 'so it survives busy weeks and new staff' },
+      { label: 'Raise the bar slightly', text: 'a small new target, not just maintenance' },
+      { label: 'Use it as the model', text: 'apply the same routine to weaker areas' },
     ],
     [
-      { label: 'Document the "why"', text: 'Knowing exactly why this is working makes it repeatable, not just lucky.' },
-      { label: 'Stress-test it', text: 'Check whether this holds up under more pressure or scale, not just in ordinary conditions.' },
-      { label: 'Share it', text: 'If this involves other people, make sure whatever\'s working here isn\'t sitting only with one person.' },
+      { label: 'Keep a simple check-in', text: 'monthly, five minutes, same questions' },
+      { label: 'Test it under pressure', text: 'does it still hold on your busiest days?' },
+      { label: 'Share the routine', text: 'so it does not depend on one person' },
     ],
   ],
   developing: [
     [
-      { label: 'Get specific', text: 'Write down exactly what "better" would look like here — vague goals rarely close a real gap.' },
-      { label: 'Pick one lever', text: 'Choose the single change most likely to move this, rather than trying to fix everything about it at once.' },
-      { label: 'Set a check-in point', text: 'Decide now when you\'ll revisit this — progress that isn\'t checked tends to quietly stall.' },
+      { label: 'Define what good looks like', text: 'one sentence, written down' },
+      { label: 'Pick one habit to fix first', text: 'not everything at once' },
+      { label: 'Set a review date', text: 'four weeks from today' },
     ],
     [
-      { label: 'Find the pattern', text: 'Look for what\'s actually causing this to sit in the middle rather than treating it as one-off bad luck.' },
-      { label: 'Borrow what works elsewhere', text: 'Whatever\'s helping your stronger areas is probably at least partly transferable here.' },
-      { label: 'Track it, don\'t just note it', text: 'A gap that\'s measured over time is far more likely to actually close.' },
+      { label: 'Find the pattern', text: 'when does this work, and when does it slip?' },
+      { label: 'Borrow from your strongest area', text: 'the same routine often transfers' },
+      { label: 'Track it weekly', text: 'a simple tick list is enough' },
     ],
   ],
   weak: [
     [
-      { label: 'Name the real cause', text: 'Be honest about why this is lagging — a vague sense of "needs work" won\'t fix it, a specific cause might.' },
-      { label: 'Start smaller than feels necessary', text: 'A weak area rarely gets fixed by one big push — a small, consistent change is more likely to stick.' },
-      { label: 'Get outside input', text: 'This is exactly the kind of gap where a second, more experienced perspective tends to help the most.' },
+      { label: 'Name the real cause', text: 'time, money, knowledge or habit' },
+      { label: 'Start smaller than feels necessary', text: 'one action you can repeat every week' },
+      { label: 'Get an outside view', text: 'this is where support pays off fastest' },
     ],
     [
-      { label: 'Make it the priority', text: 'Put this above lower-stakes items on your list — it\'s likely doing more damage to the overall picture than it appears to.' },
-      { label: 'Set one concrete next step', text: 'Not a goal — an actual action you can take this week, however small.' },
-      { label: 'Revisit soon', text: 'Check back on this specifically and often; gaps like this tend to close faster once they\'re being actively watched.' },
+      { label: 'Make this the priority', text: 'ahead of lower-stakes work' },
+      { label: 'Set one action for this week', text: 'specific, small and dated' },
+      { label: 'Check progress often', text: 'gaps close faster when they are watched' },
     ],
   ],
 };
@@ -173,19 +207,15 @@ function categoryChecklist(band3, seed) {
 // stop, so joining it with a lowercased continuation always reads as one
 // grammatical sentence, never "...it's this. conversion is...".
 const WEAKEST_PREFIX = [
-  'The place to focus first: ',
-  "The clearest opportunity in the whole result: ",
-  'Start here: ',
-  'Out of everything measured, this is what matters most right now: ',
-  'Priority one: ',
+  'Start here. ',
+  'Your priority area. ',
+  'The biggest opportunity. ',
 ];
 
 const STRONGEST_PREFIX = [
-  'Your standout: ',
-  "What's carrying the result: ",
-  'Lean into this — ',
-  'The clearest strength in the whole picture: ',
-  'Worth noting first: ',
+  'Your strongest area. ',
+  'What is working best. ',
+  'A clear strength. ',
 ];
 
 function categoryMessage(label, score, role, seed) {
@@ -199,38 +229,38 @@ function categoryMessage(label, score, role, seed) {
 // --- Tier headline & message, driven by the overall score --------------
 
 const TIER_HEADLINE = {
-  exceptional: ['You’re exactly where you want to be', 'This is about as strong a result as they come', 'A genuinely excellent result'],
-  strong: ['You’re in a strong position', 'This is a result to feel good about', 'You’re well ahead of the curve'],
-  solid: ['You’re in solid, workable shape', 'A steady result, with real upside', 'You’re on the right track'],
-  developing: ['You’re making progress, with real room to grow', 'There’s a clear path forward from here', 'You’re partway there, with work still to do'],
-  weak: ['There’s real work to do here', 'This result points to some real gaps', 'You’re starting from behind, but it’s fixable'],
-  struggling: ['This is the starting point, not the destination', 'There’s significant ground to make up', 'A tough result — and a clear place to begin'],
+  exceptional: ['You have built something strong, and it runs consistently.', 'You are well set up across the board.', 'Your foundations are strong and well established.'],
+  strong: ['You are in a strong position, but one area still holds you back.', 'You have built a strong base, with a little left to tighten.', 'Most things are working well, but not quite everywhere.'],
+  solid: ['You have built something solid, but it is not yet consistent.', 'You have good foundations, but they are not yet habits.', 'Things are working, but they take more effort than they should.'],
+  developing: ['You have made a real start, but much still depends on effort.', 'The intention is there, but the habits are not yet in place.', 'You are gaining ground, but progress is uneven.'],
+  weak: ['You have some pieces in place, but most of the foundations are still missing.', 'Right now you are reacting more than planning.', 'You are at an early stage, with clear room to grow.'],
+  struggling: ['You are at the starting point, and that is a clear place to begin.', 'Most of the foundations are not in place yet.', 'This is day one, with plenty of room to improve.'],
 };
 
 const TIER_MESSAGE = {
   exceptional: [
-    (s, w) => `An overall score like this doesn't happen by accident. ${s} in particular is doing a lot of the work — the priority now is keeping it that way.`,
-    (s, w) => `This is a genuinely strong showing across the board, led by ${s.toLowerCase()}. If there's anywhere left to sharpen, it's ${w.toLowerCase()}.`,
+    (s, w) => `The right habits are in place and they are repeated. ${s} leads the way, and even ${w.toLowerCase()} is in good shape.`,
+    (s, w) => `Your answers point the same way: things are planned, done and checked. ${s} is the strongest part, and ${w.toLowerCase()} is close behind.`,
   ],
   strong: [
-    (s, w) => `A solid, above-average result, carried mainly by ${s.toLowerCase()}. ${w} is the one area still holding the overall picture back a little.`,
-    (s, w) => `You're ahead of where most people land here, with ${s.toLowerCase()} doing most of the heavy lifting. Tightening up ${w.toLowerCase()} is the clearest next move.`,
+    (s, w) => `Most of the right habits are already in place, led by ${s.toLowerCase()}. ${w} is the one area that still varies.`,
+    (s, w) => `You are ahead in most areas, especially ${s.toLowerCase()}. The remaining gap sits mainly in ${w.toLowerCase()}.`,
   ],
   solid: [
-    (s, w) => `A workable, middle-of-the-road result. ${s} is the bright spot; ${w.toLowerCase()} is the one dragging the average down the most.`,
-    (s, w) => `Nothing here is alarming, but nothing is fully dialled in either. ${s} is furthest along — ${w.toLowerCase()} is where the next real gain sits.`,
+    (s, w) => `There are good habits and real strengths, especially in ${s.toLowerCase()}. But they are not yet consistent, and ${w.toLowerCase()} is where that shows most.`,
+    (s, w) => `Things work, but not every week and not in every area. ${s} is steady; ${w.toLowerCase()} is where results rise and fall.`,
   ],
   developing: [
-    (s, w) => `There's a real gap between ${s.toLowerCase()}, which is genuinely working, and ${w.toLowerCase()}, which is holding the rest of the picture back.`,
-    (s, w) => `This result is uneven rather than uniformly weak — ${s} is in decent shape, while ${w.toLowerCase()} is the clearest thing to fix first.`,
+    (s, w) => `Some good habits exist, mostly in ${s.toLowerCase()}, but much still depends on time and effort. ${w} is where the gap is widest.`,
+    (s, w) => `The intention is clear, but it has not yet become routine. ${s} is furthest along; ${w.toLowerCase()} needs the most attention.`,
   ],
   weak: [
-    (s, w) => `${w} is the main thing pulling this result down — it's a bigger gap than the rest of the picture. ${s} is the one relative bright spot to build from.`,
-    (s, w) => `There's real work ahead, concentrated mostly in ${w.toLowerCase()}. ${s} shows it's not uniformly weak — there's something to build on.`,
+    (s, w) => `At the moment, most things are handled as they come up rather than planned for. ${w} is the clearest gap; ${s.toLowerCase()} is the best place to build from.`,
+    (s, w) => `A few pieces are in place, mainly in ${s.toLowerCase()}. Most of the supporting habits, especially in ${w.toLowerCase()}, have not started yet.`,
   ],
   struggling: [
-    (s, w) => `${w} is the clearest, most urgent gap here — closing even part of it would move the whole result. ${s} is the one part of the picture already pointing in the right direction.`,
-    (s, w) => `This is a result that calls for a real reset, starting with ${w.toLowerCase()}. ${s} is worth holding onto as everything else gets rebuilt.`,
+    (s, w) => `Most of the habits measured here are not yet in place. That is common at this stage, and it means the first changes will show quickly, starting with ${w.toLowerCase()}.`,
+    (s, w) => `This is an early-stage result. ${w} is the clearest gap, and ${s.toLowerCase()} is the one area already pointing the right way.`,
   ],
 };
 
@@ -240,12 +270,12 @@ function tierHeadline(overall, seed) {
 }
 
 const TIER_MESSAGE_SINGLE = {
-  exceptional: [l => `${l} is doing exactly what it should — this is a genuinely strong result.`, l => `A result like this comes from ${l.toLowerCase()} being firmly in place.`],
-  strong: [l => `This is an above-average result, carried by solid performance in ${l.toLowerCase()}.`, l => `${l} is in good shape, and it's showing in the overall result.`],
-  solid: [l => `A steady, workable result on ${l.toLowerCase()} — no red flags, with real room still to grow.`, l => `${l} is holding its own here, without yet being a full strength.`],
-  developing: [l => `${l} is the whole picture here, and it's still finding its footing — there's real room to grow.`, l => `This result comes down to ${l.toLowerCase()}, which has a clear runway to improve.`],
-  weak: [l => `${l} is genuinely lagging, and since it's the whole picture here, it's worth real, focused attention.`, l => `There's a real gap in ${l.toLowerCase()} driving this result — closing it would change everything.`],
-  struggling: [l => `${l} is significantly behind — and since it's the whole picture here, it's the clear place to start.`, l => `This result comes down entirely to ${l.toLowerCase()}, which needs the most attention right now.`],
+  exceptional: [l => `${l} is fully in place and consistent.`, l => `The habits behind ${l.toLowerCase()} are set and repeated.`],
+  strong: [l => `${l} is in good shape, with a little room left.`, l => `Most of what supports ${l.toLowerCase()} is already in place.`],
+  solid: [l => `${l} works, but not yet consistently.`, l => `${l} is functional, but uneven from week to week.`],
+  developing: [l => `${l} is partly in place, and still depends on effort.`, l => `The intention behind ${l.toLowerCase()} is clear, but the habits are not yet set.`],
+  weak: [l => `${l} is at an early stage.`, l => `Few of the habits behind ${l.toLowerCase()} are in place yet.`],
+  struggling: [l => `${l} is not yet in place.`, l => `${l} is at the starting line.`],
 };
 
 // A short, concrete suggestion sentence appended to every tier message —
@@ -262,30 +292,12 @@ const TIER_MESSAGE_SINGLE = {
 // the same paragraph, so any shared phrase reads as an awkward, literal
 // repetition rather than two distinct sentences.
 const TIER_SUGGESTION = {
-  exceptional: [
-    w => `The only thing left to do about ${w.toLowerCase()} is keep it from sliding while everything else gets the spotlight.`,
-    w => `Treat ${w.toLowerCase()} the same way as the rest of this result — a quick regular check-in is enough to keep it exactly where it is.`,
-  ],
-  strong: [
-    w => `A focused hour or two on ${w.toLowerCase()} is realistically all it would take to round this out.`,
-    w => `${w} is the one thing worth scheduling real time for next — everything else here is already working.`,
-  ],
-  solid: [
-    w => `Put ${w.toLowerCase()} at the top of the list for what to work on next — it's the most realistic place to actually move this result.`,
-    w => `A specific, deliberate change to ${w.toLowerCase()} — not a vague intention — is what would shift this from solid to strong.`,
-  ],
-  developing: [
-    w => `The clearest next step: put focused, deliberate attention on ${w.toLowerCase()} before anything else.`,
-    w => `If there's one place to start, it's ${w.toLowerCase()} — closing even part of that gap would lift the whole result.`,
-  ],
-  weak: [
-    w => `The most useful next move here is a concrete plan for ${w.toLowerCase()} — everything else gets easier once that's addressed.`,
-    w => `Worth treating as the real priority: a specific, honest plan for improving ${w.toLowerCase()} would move the needle most.`,
-  ],
-  struggling: [
-    w => `The single most useful thing to do next is build a real, specific plan for ${w.toLowerCase()} — everything else follows from that.`,
-    w => `Make ${w.toLowerCase()} the one non-negotiable focus for now — it's doing more to shape this result than anything else measured.`,
-  ],
+  exceptional: [w => `The goal here: keep it consistent, including ${w.toLowerCase()}.`, w => `The goal here: protect what works as things grow.`],
+  strong: [w => `The goal here: bring ${w.toLowerCase()} up to the level of everything else.`, w => `The goal here: turn ${w.toLowerCase()} from effort into routine.`],
+  solid: [w => `The goal here: move from good intentions to steady habits, starting with ${w.toLowerCase()}.`, w => `The goal here: make ${w.toLowerCase()} as reliable as your best area.`],
+  developing: [w => `The goal here: turn a few good habits into a routine, starting with ${w.toLowerCase()}.`, w => `The goal here: put ${w.toLowerCase()} on a simple weekly rhythm.`],
+  weak: [w => `The goal here: put the basics in place, one area at a time, starting with ${w.toLowerCase()}.`, w => `The goal here: move from reacting to planning, beginning with ${w.toLowerCase()}.`],
+  struggling: [w => `The goal here: start small, with one habit in ${w.toLowerCase()} that sticks.`, w => `The goal here: build the first foundation in ${w.toLowerCase()}, then the next.`],
 };
 
 function tierSuggestion(label, band, seed) {
@@ -297,11 +309,11 @@ function tierMessage(overall, strongestLabel, weakestLabel, seed) {
   if (strongestLabel === weakestLabel) {
     const fn = pick(`${seed}:message`, TIER_MESSAGE_SINGLE[band]);
     const base = fn(strongestLabel);
-    return `${base} ${tierSuggestion(strongestLabel, band, `${seed}:suggestion`)}`;
+    return base;
   }
   const fn = pick(`${seed}:message`, TIER_MESSAGE[band]);
   const base = fn(strongestLabel, weakestLabel);
-  return `${base} ${tierSuggestion(weakestLabel, band, `${seed}:suggestion`)}`;
+  return base;
 }
 
 // --- Per-answer insight, driven by how the chosen option ranks among the
@@ -315,25 +327,25 @@ function tierMessage(overall, strongestLabel, weakestLabel, seed) {
 // opportunity, never as a failing grade, and no invented statistics.
 const ANSWER_INSIGHT = {
   best: [
-    (area) => `This is a real strength. You're already in the strongest position here, and it's one of the reasons behind ${area}. Build on it rather than rethink it.`,
-    (area) => `Nothing to fix here. This is exactly the position that makes ${area} work in your favour, so protect it as things change.`,
-    (area) => `You're already where this needs to be. It gives ${area} a solid foundation to build everything else on.`,
+    (area) => `A strength. This supports ${area}; keep doing it.`,
+    (area) => `In place. This is the strongest answer here, and it supports ${area}.`,
+    (area) => `Nothing to change. This habit is part of what holds ${area} up.`,
   ],
   strong: [
-    (area, best) => `A good position, just short of the strongest one ("${best}"). One small step closer would round out ${area}.`,
-    (area, best) => `You're nearly there on this. Moving towards "${best}" is one of the quickest wins available for ${area}.`,
+    (area, best) => `Close. One step towards "${best}" would round out ${area}.`,
+    (area, best) => `Nearly there. Moving to "${best}" is a quick win for ${area}.`,
   ],
   mid: [
-    (area, best) => `This keeps ${area} in the middle. The strongest position here is "${best}", and the distance between the two is where your quickest gains are.`,
-    (area, best) => `Steady, but not yet working for you. The strongest position on this one is "${best}". Closing even part of that gap would show up in ${area}.`,
+    (area, best) => `Partly in place. The strongest answer is "${best}"; closing that gap lifts ${area}.`,
+    (area, best) => `Uneven. "${best}" is the target, and the gap here is where ${area} can improve.`,
   ],
   weak: [
-    (area, best) => `This is one of the answers holding ${area} back. The strongest position here is "${best}", which makes this well worth a closer look.`,
-    (area, best) => `Worth a second look: this answer is costing ${area} more than it needs to. Moving even partway towards "${best}" would change your result.`,
+    (area, best) => `Not yet in place. The strongest answer is "${best}", which makes this worth a closer look for ${area}.`,
+    (area, best) => `A gap. This is holding ${area} back; "${best}" is what good looks like.`,
   ],
   worst: [
-    (area, best) => `This is where you lose the most ground on ${area} right now. The strongest position here is "${best}", and the good news is that this is also where change shows up fastest.`,
-    (area, best) => `Right now this is the biggest drag on ${area}. Moving from here towards "${best}" would make a bigger difference than almost anything else on this question.`,
+    (area, best) => `The biggest gap on this question. "${best}" is the target, and change here shows in ${area} quickly.`,
+    (area, best) => `A priority. Moving towards "${best}" would make the biggest difference to ${area}.`,
   ],
 };
 
@@ -355,28 +367,28 @@ const ANSWER_INSIGHT = {
 // repeat that sentence inside the CTA card underneath it.
 const TIER_RECOMMENDATION = {
   exceptional: [
-    w => `Everything here is working — if you'd like a second opinion on keeping it that way, ${w.toLowerCase()} included, this is the next step.`,
-    w => `A result like this is worth protecting. If you'd like professional help making sure ${w.toLowerCase()} stays this strong, here's where to start.`,
+    w => `If you want a second opinion on keeping this level, ${w.toLowerCase()} included, this is the next step.`,
+    w => `To keep it consistent as you grow, including ${w.toLowerCase()}, here is where to start.`,
   ],
   strong: [
-    w => `You're close to a genuinely excellent result. If you'd like hands-on help closing the gap on ${w.toLowerCase()}, this is the next step.`,
-    w => `A little expert input on ${w.toLowerCase()} could be what pushes this from good to excellent — here's where to get it.`,
+    w => `To close the remaining gap in ${w.toLowerCase()}, this is the next step.`,
+    w => `A short session on ${w.toLowerCase()} would move this from strong to consistent.`,
   ],
   solid: [
-    w => `${w} is the most realistic place to improve from here. If you'd like help putting a real plan together for it, this is the next step.`,
-    w => `A workable result with a clear next move — get expert input on ${w.toLowerCase()} and turn this into a genuinely strong one.`,
+    w => `To turn ${w.toLowerCase()} into a steady habit, this is the next step.`,
+    w => `Get a clear plan for ${w.toLowerCase()} and move from functional to strong.`,
   ],
   developing: [
-    w => `${w} is the clearest place to start. If you'd like help building a real plan for it, this is the next step.`,
-    w => `Closing the gap on ${w.toLowerCase()} would change this result the most — get expert help putting a plan together for it.`,
+    w => `To build a simple routine for ${w.toLowerCase()}, this is the next step.`,
+    w => `Get help setting up ${w.toLowerCase()}, so it no longer depends on effort.`,
   ],
   weak: [
-    w => `${w} needs real, focused attention. If you'd like expert help building a plan to fix it, this is the next step.`,
-    w => `A dedicated plan for ${w.toLowerCase()} would make the biggest difference here — here's where to get help putting one together.`,
+    w => `To put the basics of ${w.toLowerCase()} in place, this is the next step.`,
+    w => `Get a step-by-step plan for ${w.toLowerCase()}, starting this week.`,
   ],
   struggling: [
-    w => `${w} is the clearest place to start rebuilding from. If you'd like expert help putting together a real plan, this is the next step.`,
-    w => `This is the kind of result worth talking through with someone who's helped others close a gap like this before.`,
+    w => `To start with ${w.toLowerCase()} and build from there, this is the next step.`,
+    w => `Talk it through with someone who has helped others start from here.`,
   ],
 };
 
@@ -390,10 +402,9 @@ function tierRecommendation(overall, weakestLabel, seed) {
 // connected thought on every scorecard (e.g. weakest category "Design" ->
 // "Want to talk to a design expert?") rather than two unrelated blocks.
 const CTA_HEADLINE_CATEGORY = [
-  (n, w) => `Want to talk to a ${w.toLowerCase()} expert, ${n}?`,
-  (n, w) => `${n}, ready to get real help with ${w.toLowerCase()}?`,
-  (n, w) => `Want a second pair of eyes on ${w.toLowerCase()}, ${n}?`,
-  (n, w) => `Ready to turn ${w.toLowerCase()} into a real next step, ${n}?`,
+  (n, w) => `${n}, do you want to talk through your results?`,
+  (n, w) => `Want help with ${w.toLowerCase()}, ${n}?`,
+  (n, w) => `${n}, shall we start with ${w.toLowerCase()}?`,
 ];
 
 function ctaHeadline(firstName, weakestLabel, seed) {
@@ -404,15 +415,15 @@ function ctaHeadline(firstName, weakestLabel, seed) {
 // Shown when someone chose "I'd like help with this" — they raised their
 // hand, so this reads as an acknowledgement, never a grade.
 const HELP_INSIGHT = [
-  "You put your hand up for this one, and that's the most useful answer anyone can give. It's noted, and it's the first thing worth talking through.",
-  "Thank you for flagging this. Asking for help on it isn't a weakness; it's usually exactly where the quickest progress comes from.",
-  "Noted, and it's a good instinct. Most people who flag this find it moves faster with someone alongside them.",
+  'You asked for help here. Noted, and it is a sensible place to start.',
+  'Flagged for help. This is usually where the quickest progress comes from.',
+  'You raised your hand on this one. We will start the conversation here.',
 ];
 
 const CTA_HEADLINE_HELP = [
-  (n, t) => `${n}, you asked for help with ${t}. Shall we start there?`,
-  (n, t) => `You flagged ${t}, ${n}. Want to talk it through?`,
-  (n, t) => `${n}, let's start with what you asked for: ${t}.`,
+  (n, t) => `${n}, you asked for help with ${t}. Start there.`,
+  (n, t) => `You flagged ${t}, ${n}. Here is the next step.`,
+  (n, t) => `${n}, let's begin with ${t}.`,
 ];
 
 // Turns "Do you track every sale in one place?" into a short topic phrase for
@@ -485,7 +496,8 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
     const ownerHeadline = c.headline && c.headline.trim();
     const headline = ownerHeadline || categoryHeadline(c.label, band3, `${seedBase}:${c.key}`);
     const checklist = categoryChecklist(band3, `${seedBase}:${c.key}`);
-    return { key: c.key, label: c.label, score: c.score, band: band3, headline, message, checklist };
+    const seen = categorySeen(c.label, band3, `${seedBase}:${c.key}`);
+    return { key: c.key, label: c.label, score: c.score, band: band3, headline, message, seen, checklist };
   });
 
   const answerInsights = questions.map((q, i) => {
@@ -573,7 +585,11 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
     aboutYou: about,
     helpWanted,
     preferredHelp: preferred ? preferred.answer : '',
-    typicalSigns,
+    typicalSigns: typicalSigns.length ? typicalSigns : generatedSigns(overall, strongest.label, weakest.label),
+    // "The goal here:" line and the top-level priority list for the weakest area
+    goal: tierSuggestion(weakest.label, bandFor(overall), `${seedBase}:goal`),
+    priorities: { focus: weakest.label, items: categoryChecklist(band3For(weakest.score), `${seedBase}:${weakest.key}`) },
+    areasMeasured: categories.map(c => c.label),
   };
 }
 

@@ -40,6 +40,6 @@ test('theme accepts a hex colour and safe logo links only', () => {
 test('results layout keeps every section exactly once, in the owner order', () => {
   const r = sanitizeResults({ order: ['cta', 'map', 'bogus', 'cta'], hidden: ['pair', 'nope'] });
   assert.deepStrictEqual(r.order.slice(0, 2), ['cta', 'map']);
-  assert.strictEqual(r.order.length, 8);
+  assert.strictEqual(r.order.length, 7);
   assert.deepStrictEqual(r.hidden, ['pair']);
 });

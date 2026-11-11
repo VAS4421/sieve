@@ -542,7 +542,8 @@
     // 1. the reveal
     const hero = `
       <section class="rx-hero rx-${ob}">
-        <p class="rx-eyebrow">${name ? `${name}, here's` : `Here's`} what your answers reveal</p>
+        <p class="rx-eyebrow">Thank you for taking the assessment${name ? `, ${name}` : ''}</p>
+        <p class="rx-assess">${escapeHtml(scorecard.title || '')}</p>
         <div class="rx-ring" style="--p:0" data-target="${p.overall}">
           <svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="rxg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent-2, #12C2E9)"/></linearGradient></defs>
             <circle cx="60" cy="60" r="52" class="rx-ring-bg"/><circle cx="60" cy="60" r="52" class="rx-ring-fg" pathLength="100"/></svg>
@@ -551,6 +552,7 @@
         <span class="rx-tier" style="--c:${BAND[ob].color};--s:${BAND[ob].soft}">${escapeHtml(p.tierLabel)}</span>
         <h1 class="rx-h1">${escapeHtml(p.tierHeadline)}</h1>
         ${p.tierMessage ? `<p class="rx-lead">${escapeHtml(p.tierMessage)}</p>` : ''}
+        ${(p.areasMeasured || []).length > 1 ? `<p class="rx-reflects">This score reflects your answers across ${p.areasMeasured.length} areas: ${escapeHtml(listJoin(p.areasMeasured))}. Think of it as a snapshot of where things stand today, not a grade.</p>` : ''}
         ${result.engagementMode && result.timeToCompleteSeconds != null ? `<span class="rx-time">⏱ Completed in ${formatDuration(result.timeToCompleteSeconds)}</span>` : ''}
         ${hasCta ? `<a class="rx-btn rx-hero-btn" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener">${ctaLabel}${arrow}</a>` : ''}
       </section>`;
@@ -558,17 +560,17 @@
     // 2. what they didn't know about themselves
     const pair = showPair ? `
       <section class="rx-section">
-        <p class="rx-kicker">What stands out</p>
-        <h2 class="rx-h2">${name ? `${name}, this` : 'This'} is what your answers say about you.</h2>
+        <p class="rx-kicker">At a glance</p>
+        <h2 class="rx-h2">Your strongest and weakest areas.</h2>
         <div class="rx-pair">
           <div class="rx-pcard good">
-            <span class="rx-pc-tag">Your strength</span>
+            <span class="rx-pc-tag">Strongest area</span>
             <div class="rx-pc-top"><b>${escapeHtml(strongest.label)}</b><span>${strongest.score}%</span></div>
             <div class="rx-bar"><i data-w="${strongest.score}" style="--c:${BAND[strongest.band].color}"></i></div>
             <p>${escapeHtml(strongest.headline)}</p>
           </div>
           <div class="rx-pcard gap">
-            <span class="rx-pc-tag">Your blind spot</span>
+            <span class="rx-pc-tag">Needs attention</span>
             <div class="rx-pc-top"><b>${escapeHtml(weakest.label)}</b><span>${weakest.score}%</span></div>
             <div class="rx-bar"><i data-w="${weakest.score}" style="--c:${BAND[weakest.band].color}"></i></div>
             <p>${escapeHtml(weakest.headline)}</p>
@@ -580,9 +582,9 @@
     const gapBlock = gap > 0 ? `
       <section class="rx-gapcard">
         <div class="rx-gap-copy">
-          <p class="rx-kicker light">Your potential</p>
-          <h2>You're at <b>${p.overall}%</b>. ${gap} point${gap === 1 ? '' : 's'} stand between you and your best result.</h2>
-          <p>${cats.length > 1 ? `Most of that gap sits in <b>${escapeHtml(weakest.label)}</b>. Small changes there move your whole score.` : 'The steps below show exactly where to start.'}</p>
+          <p class="rx-kicker light">The opportunity</p>
+          <h2>You scored <b>${p.overall}%</b>. The remaining ${gap} point${gap === 1 ? '' : 's'} are where the easier, steadier version of this sits.</h2>
+          <p>${cats.length > 1 ? `Most of the gap is in <b>${escapeHtml(weakest.label)}</b>. Small, practical changes there will move your whole score.` : 'The moves below show where to start.'}</p>
         </div>
         <div class="rx-track" aria-hidden="true">
           <div class="rx-track-fill" data-w="${p.overall}"></div>
@@ -616,10 +618,10 @@
     const catBlock = cats.length ? `
       <section class="rx-section">
         <p class="rx-kicker">${cats.length > 1 ? 'Area by area' : 'Your breakdown'}</p>
-        <h2 class="rx-h2">${cats.length > 1 ? 'What each area means for you.' : 'Where you stand, area by area.'}</h2>
+        <h2 class="rx-h2">We've scored you against ${cats.length > 1 ? `these ${cats.length} areas` : 'this area'}.</h2>
         <div class="rx-cats">${ordered.map((c, i) => {
           const b = BAND[c.band] || BAND.developing;
-          const badge = cats.length > 1 && c.key === weakest.key && showPair ? '<span class="rx-badge op">Biggest opportunity</span>' : cats.length > 1 && c.key === strongest.key && showPair ? '<span class="rx-badge st">Your strength</span>' : '';
+          const badge = cats.length > 1 && c.key === weakest.key && showPair ? '<span class="rx-badge op">Start here</span>' : cats.length > 1 && c.key === strongest.key && showPair ? '<span class="rx-badge st">Strongest</span>' : '';
           return `<article class="rx-cat ${i === 0 ? 'open' : ''}" style="--c:${b.color};--s:${b.soft}">
             <button class="rx-cat-head" type="button" aria-expanded="${i === 0}">
               <span class="rx-cat-ic">${categoryIconSvg(c.label)}</span>
@@ -630,45 +632,34 @@
             <div class="rx-bar thin"><i data-w="${c.score}" style="--c:${b.color}"></i></div>
             <div class="rx-cat-body">
               <h3>${escapeHtml(c.headline)}</h3>
+              <p class="rx-cat-lbl">What your answers tell us</p>
               <p>${escapeHtml(c.message)}</p>
-              ${(c.checklist || []).length ? `<div class="rx-todo"><span>What to do next</span><ul>${c.checklist.map(it => `<li><i>✓</i><span><b>${escapeHtml(it.label)}:</b> ${escapeHtml(it.text)}</span></li>`).join('')}</ul></div>` : ''}
+              ${c.seen ? `<p class="rx-cat-lbl">What we usually see</p><p>${escapeHtml(c.seen)}</p>` : ''}
+              ${(c.checklist || []).length ? `<div class="rx-todo"><span>Your first ${c.checklist.length} moves</span><ol>${c.checklist.map(it => `<li><span><b>${escapeHtml(it.label)}</b> - ${escapeHtml(it.text)}</span></li>`).join('')}</ol></div>` : ''}
             </div>
           </article>`; }).join('')}</div>
-      </section>` : '';
-
-    // 5. their own answers, read back with insight
-    const ins = p.answerInsights || [];
-    const insBlock = ins.length ? `
-      <section class="rx-section">
-        <p class="rx-kicker">In your own words</p>
-        <h2 class="rx-h2">What your answers tell us.</h2>
-        <div class="rx-quotes">${ins.map((a, i) => `
-          <div class="rx-quote ${a.help ? 'help' : ''} ${i >= 3 ? 'more' : ''}">
-            <p class="rx-q-q">${escapeHtml(a.question)}</p>
-            <p class="rx-q-a">“${escapeHtml(a.answer)}”</p>
-            <p class="rx-q-i">${escapeHtml(a.insight)}</p>
-          </div>`).join('')}</div>
-        ${ins.length > 3 ? `<button class="rx-more" type="button" id="rx-more">See all ${ins.length} insights</button>` : ''}
       </section>` : '';
 
     // 5b. typical signs for their tier, and everything they told us outside the score
     const signs = p.typicalSigns || [];
     const signsBlock = signs.length ? `
       <section class="rx-section rx-signs">
-        <p class="rx-kicker">Sound familiar?</p>
-        <h2 class="rx-h2">People who land at ${escapeHtml(p.tierLabel)} usually notice this.</h2>
+        <p class="rx-kicker">Typical signs</p>
+        <h2 class="rx-h2">What ${escapeHtml(p.tierLabel)} usually looks like day to day.</h2>
         <ul class="rx-signs-list">${signs.map(t => `<li><i aria-hidden="true"></i><span>${escapeHtml(t)}</span></li>`).join('')}</ul>
+        ${p.priorities && (p.priorities.items || []).length ? `<div class="rx-prio"><p class="rx-kicker">Priority recommendations</p><p class="rx-prio-lead">Focus on ${escapeHtml(String(p.priorities.focus || '').toLowerCase())} first:</p><ul>${p.priorities.items.map(it => `<li><i aria-hidden="true">✔</i><span><b>${escapeHtml(it.label)}</b> - ${escapeHtml(it.text)}</span></li>`).join('')}</ul></div>` : ''}
+        ${p.goal ? `<p class="rx-goal-line">${escapeHtml(p.goal)}</p>` : ''}
       </section>` : '';
     const about = p.aboutYou || [];
     const helpWanted = p.helpWanted || [];
     const ABOUT_TAG = { situation: 'Where you are', goal: 'Where you want to be', obstacle: "What's in the way", help: 'How you like to be helped', note: 'In your words', other: 'You told us' };
     const toldBlock = (about.length || helpWanted.length) ? `
       <section class="rx-section rx-told">
-        <p class="rx-kicker">We listened</p>
-        <h2 class="rx-h2">${name ? `${name}, here's` : "Here's"} what you told us.</h2>
+        <p class="rx-kicker">Your situation</p>
+        <h2 class="rx-h2">What you told us.</h2>
         ${about.length ? `<div class="rx-told-grid">${about.map(a => `
           <div class="rx-told-card k-${escapeHtml(a.key)}"><span>${escapeHtml(ABOUT_TAG[a.key] || ABOUT_TAG.other)}</span><p>“${escapeHtml(a.answer)}”</p></div>`).join('')}</div>` : ''}
-        ${helpWanted.length ? `<div class="rx-told-help"><b>✋ You asked for help with</b><ul>${helpWanted.map(h => `<li>${escapeHtml(h.question)}</li>`).join('')}</ul><p>That's noted. It's where we'd start.</p></div>` : ''}
+        ${helpWanted.length ? `<div class="rx-told-help"><b>✋ You asked for help with</b><ul>${helpWanted.map(h => `<li>${escapeHtml(h.question)}</li>`).join('')}</ul><p>Noted. This is where we would start.</p></div>` : ''}
       </section>` : '';
 
     // 6. the next step
@@ -723,7 +714,7 @@
 
     // owner-chosen order and visibility for everything after the score reveal
     const layout = scorecard.results || {};
-    const blocks = { signs: signsBlock, pair, map: mapBlock, gap: gapBlock, areas: catBlock, answers: insBlock, told: toldBlock, cta: ctaBlock };
+    const blocks = { signs: signsBlock, pair, map: mapBlock, gap: gapBlock, areas: catBlock, told: toldBlock, cta: ctaBlock };
     const order = (Array.isArray(layout.order) && layout.order.length ? layout.order : Object.keys(blocks)).filter(k => blocks[k] !== undefined);
     Object.keys(blocks).forEach(k => { if (!order.includes(k)) order.push(k); });
     const hiddenSet = new Set(Array.isArray(layout.hidden) ? layout.hidden : []);
@@ -778,6 +769,8 @@
       if (cta) new IntersectionObserver(([e]) => { atCta = e.isIntersecting; update(); }, { threshold: 0.2 }).observe(cta);
     }
   }
+
+  function listJoin(a) { return a.length < 2 ? (a[0] || '') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`; }
 
   function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 

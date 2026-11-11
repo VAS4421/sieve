@@ -92,7 +92,7 @@
   const LAND = () => { const pc = state.profileCapture || (state.profileCapture = {}); const l = (pc.landing ||= { bullets: [], audience: '', trust: '', button: '' }); l.bullets ||= []; return l; };
   const INTEG = () => { const pc = state.profileCapture || (state.profileCapture = {}); return (pc.integrations ||= { webhookUrl: '', webhookSecret: '' }); };
   const THEME = () => { const pc = state.profileCapture || (state.profileCapture = {}); return (pc.theme ||= { accent: '', logo: '', font: 'modern', corners: 'rounded' }); };
-  const RES_LABELS = { signs: 'Sound familiar? (typical signs)', pair: 'Strength and blind spot', map: 'Score map', gap: 'Your potential', areas: 'Area by area', answers: 'Their answers, with insights', told: 'What they told you', cta: 'Next step (your button)' };
+  const RES_LABELS = { signs: 'Typical signs and priorities', pair: 'Strength and blind spot', map: 'Score map', gap: 'Your potential', areas: 'Area by area', told: 'What they told you', cta: 'Next step (your button)' };
   const RES = () => {
     const pc = state.profileCapture || (state.profileCapture = {});
     const r = (pc.results ||= { order: [], hidden: [] });
