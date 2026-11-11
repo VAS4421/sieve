@@ -91,6 +91,36 @@ function buildReportPdf(personalization, businessName) {
   //   });
   // }
 
+  // Typical signs for their tier, then everything they told us outside the
+  // score — the same blocks the on-screen result shows. Plain characters only:
+  // the standard PDF font can't draw emoji.
+  const signs = personalization.typicalSigns || [];
+  const about = personalization.aboutYou || [];
+  const help = personalization.helpWanted || [];
+  if (signs.length) {
+    doc.moveDown(0.3);
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(13).text(`Sound familiar? People at ${personalization.tierLabel} usually notice this`, { width: pageWidth });
+    doc.moveDown(0.4);
+    signs.forEach(t => doc.fillColor(INK_SOFT).font('Helvetica').fontSize(10.5).text(`•  ${t}`, { width: pageWidth, lineGap: 2 }));
+    doc.moveDown(0.8);
+  }
+  if (about.length || help.length) {
+    const LABEL = { situation: 'Where you are', goal: 'Where you want to be', obstacle: "What's in the way", help: 'How you like to be helped', note: 'In your words', other: 'You told us' };
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(13).text("Here's what you told us", { width: pageWidth });
+    doc.moveDown(0.4);
+    about.forEach(x => {
+      doc.fillColor(INK_SOFT).font('Helvetica-Bold').fontSize(9.5).text(String(LABEL[x.key] || LABEL.other).toUpperCase(), { width: pageWidth });
+      doc.fillColor(INK).font('Helvetica').fontSize(10.5).text(`"${x.answer}"`, { width: pageWidth, lineGap: 2 });
+      doc.moveDown(0.35);
+    });
+    if (help.length) {
+      doc.moveDown(0.2);
+      doc.fillColor(INK).font('Helvetica-Bold').fontSize(11).text('You asked for help with', { width: pageWidth });
+      help.forEach(h => doc.fillColor(INK_SOFT).font('Helvetica').fontSize(10.5).text(`•  ${h.question}`, { width: pageWidth, lineGap: 2 }));
+    }
+    doc.moveDown(0.8);
+  }
+
   // Recommendation / CTA — same headline, body, and button label as the
   // on-screen result and the email, per personalize.js's shared output.
   if (personalization.recommendation) {

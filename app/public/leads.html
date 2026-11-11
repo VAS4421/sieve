@@ -8,6 +8,24 @@
 <link rel="apple-touch-icon" href="/logo.png" />
 <link rel="stylesheet" href="/styles.css" />
 <link rel="stylesheet" href="/app.css" />
+<style>
+  .lx-banner { margin-bottom: 14px; padding: 12px 16px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-ink); font-size: 14px; }
+  .lx-row { cursor: pointer; }
+  .lx-row:hover td, .lx-row.open td { background: var(--surface-sunk); }
+  .lx-chev { display: inline-block; width: 14px; color: var(--ink-faint); transition: transform .15s; }
+  .lx-row.open .lx-chev { transform: rotate(90deg); }
+  .lx-help { display: inline-block; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-weight: 800; font-size: 12.5px; }
+  .lx-none { color: var(--ink-faint); }
+  .lx-detail td { background: var(--surface-sunk); padding: 14px 16px 18px; }
+  .lx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  .lx-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .lx-card span { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); }
+  .lx-card p { margin: 4px 0 0; font-weight: 600; font-size: 14px; color: var(--ink); white-space: normal; overflow-wrap: anywhere; }
+  .lx-helpbox { margin-top: 10px; padding: 10px 14px; border-radius: 12px; border: 1.5px dashed var(--accent); background: var(--surface); font-size: 14px; white-space: normal; }
+  .lx-helpbox ul { margin: 6px 0 0; padding-left: 18px; }
+  /* keep the details inside the visible part of a horizontally scrolling table */
+  .lx-detail td > div { position: sticky; left: 16px; max-width: min(900px, calc(100vw - 72px)); }
+</style>
 </head>
 <body>
   <div class="app-shell">
@@ -47,24 +65,40 @@
         return;
       }
 
+      // What each lead told us outside the score: their "about you" answers
+      // and anything they asked for help with. Click a row to open it.
+      const ABOUT_LABEL = { situation: 'Where they are', goal: '90-day goal', obstacle: "What's in the way", help: 'How they want help', note: 'In their words', other: 'They told us' };
+      const helpCount = leads.filter(l => (l.helpWanted || []).length).length;
+      const hasExtras = (l) => (l.aboutYou || []).length || (l.helpWanted || []).length;
       content.innerHTML = `
+        ${helpCount ? `<div class="lx-banner">✋ <b>${helpCount} lead${helpCount === 1 ? '' : 's'}</b> asked for help with something. Start with them.</div>` : ''}
         <div class="leads-table-wrap">
           <table class="leads">
-            <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Score</th><th>Tier</th><th>Date</th></tr></thead>
+            <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Score</th><th>Tier</th><th>Wants help</th><th>Date</th></tr></thead>
             <tbody>
-              ${leads.map(l => `
-                <tr>
-                  <td>${escapeHtml([l.firstName, l.lastName].filter(Boolean).join(' ') || '—')}</td>
+              ${leads.map((l, i) => `
+                <tr class="${hasExtras(l) ? 'lx-row' : ''}" ${hasExtras(l) ? `data-lx="${i}" tabindex="0" title="Click to see what they told you"` : ''}>
+                  <td>${hasExtras(l) ? '<span class="lx-chev" aria-hidden="true">▸</span>' : ''}${escapeHtml([l.firstName, l.lastName].filter(Boolean).join(' ') || '—')}</td>
                   <td>${escapeHtml(l.phone || '—')}</td>
                   <td>${escapeHtml(l.email || '—')}</td>
                   <td><strong>${l.overallScore}%</strong></td>
                   <td><span class="tier-pill">${escapeHtml(l.tier)}</span></td>
+                  <td>${(l.helpWanted || []).length ? `<span class="lx-help">✋ ${(l.helpWanted || []).length}</span>` : '<span class="lx-none">—</span>'}</td>
                   <td>${new Date(l.createdAt).toLocaleDateString()}</td>
                 </tr>
+                ${hasExtras(l) ? `<tr class="lx-detail" id="lx-${i}" hidden><td colspan="7">
+                  ${(l.aboutYou || []).length ? `<div class="lx-grid">${l.aboutYou.map(a => `<div class="lx-card"><span>${escapeHtml(ABOUT_LABEL[a.key] || ABOUT_LABEL.other)}</span><p>${escapeHtml(a.answer)}</p></div>`).join('')}</div>` : ''}
+                  ${(l.helpWanted || []).length ? `<div class="lx-helpbox"><b>✋ Asked for help with</b><ul>${l.helpWanted.map(h => `<li>${escapeHtml(h.question)}</li>`).join('')}</ul></div>` : ''}
+                </td></tr>` : ''}
               `).join('')}
             </tbody>
           </table>
         </div>`;
+      content.querySelectorAll('[data-lx]').forEach(row => {
+        const toggle = () => { const d = document.getElementById('lx-' + row.dataset.lx); d.hidden = !d.hidden; row.classList.toggle('open', !d.hidden); };
+        row.addEventListener('click', toggle);
+        row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+      });
 
       function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
     })();

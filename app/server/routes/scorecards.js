@@ -170,6 +170,14 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+// What a lead told us outside the score, read from their stored result
+// snapshot (so it stays right even if the owner later edits the questions).
+function leadExtras(l) {
+  let p = {};
+  try { p = l.personalization ? JSON.parse(l.personalization) : {}; } catch { p = {}; }
+  return { aboutYou: Array.isArray(p.aboutYou) ? p.aboutYou : [], helpWanted: Array.isArray(p.helpWanted) ? p.helpWanted : [] };
+}
+
 async function ownedScorecardOr404(req, res) {
   const row = await get('SELECT * FROM scorecards WHERE id = ?', [req.params.id]);
   if (!row || row.user_id !== req.user.id) {
@@ -280,6 +288,7 @@ router.get('/:id/leads', async (req, res, next) => {
         profile: l.profile ? JSON.parse(l.profile) : null,
         timeToCompleteSeconds: l.time_to_complete_seconds,
         createdAt: l.created_at,
+        ...leadExtras(l),
       })),
     });
   } catch (err) {
@@ -408,12 +417,16 @@ router.get('/:id/leads.csv', async (req, res, next) => {
       return res.status(402).json({ error: 'CSV export is available on paid plans. Upgrade to export your leads.' });
     }
     const leads = await all('SELECT * FROM leads WHERE scorecard_id = ? ORDER BY created_at DESC', [row.id]);
-    const header = 'First name,Last name,Phone,Email,Overall score,Tier,Age range,Gender,Location,Social class,Interest,Time to complete (s),Date\n';
+    const header = 'First name,Last name,Phone,Email,Overall score,Tier,Situation,90-day goal,Main obstacle,Preferred help,Note,Wants help with,Age range,Gender,Location,Social class,Interest,Time to complete (s),Date\n';
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = leads.map(l => {
       const p = l.profile ? JSON.parse(l.profile) : {};
+      const x = leadExtras(l);
+      const about = (k) => x.aboutYou.filter(a => a.key === k).map(a => a.answer).join(' / ');
       return [
         l.first_name, l.last_name, l.phone, l.email, l.overall_score, l.tier,
+        about('situation'), about('goal'), about('obstacle'), about('help'), about('note'),
+        x.helpWanted.map(h => h.question).join(' | '),
         p.ageRange, p.gender, p.location, p.socialClass, p.interest,
         l.time_to_complete_seconds, l.created_at,
       ].map(esc).join(',');
