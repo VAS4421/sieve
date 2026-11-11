@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#033d3a"/><stop offset="100%" stop-color="#18b49b"/></linearGradient></defs>
+  <rect width="640" height="360" fill="url(#g)"/>
+  <circle cx="560" cy="60" r="140" fill="#ffffff" opacity="0.06"/><circle cx="600" cy="300" r="90" fill="#ffffff" opacity="0.05"/>
+  <rect x="36" y="36" width="130" height="28" rx="14" fill="#ffffff" opacity="0.16"/>
+  <text x="101" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="0.06em" fill="#ffffff">SIEVE SCORECARD</text>
+  <text x="36" y="236" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700" fill="#ffffff">Personal Health Habits</text>
+  <text x="36" y="270" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700" fill="#ffffff">Check</text>
+</svg>

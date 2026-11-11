@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('node:crypto');
 const { run, get } = require('../db');
 const { computeScore } = require('../scoring');
+const { publicQuestion, validateAnswers } = require('../questions');
 const { buildPersonalizedResult } = require('../personalize');
 const { buildReportPdf } = require('../pdf');
 const rateLimit = require('../middleware/rateLimit');
@@ -156,10 +157,7 @@ router.get('/scorecards/:slug', async (req, res, next) => {
     const gateReason = await billingGate(row);
     if (gateReason) return res.status(503).json({ error: gateReason });
 
-    const questions = JSON.parse(row.questions).map(q => ({
-      text: q.text,
-      options: q.options.map(o => ({ label: o.label })),
-    }));
+    const questions = JSON.parse(row.questions).map(publicQuestion);
 
     res.json({
       slug: row.slug,
@@ -196,21 +194,16 @@ router.post('/scorecards/:slug/submit', submitLimiter, async (req, res, next) =>
     const row = await get('SELECT * FROM scorecards WHERE slug = ? AND published = 1', [req.params.slug]);
     if (!row) return res.status(404).json({ error: 'This scorecard is not available.' });
 
-    const { firstName, lastName, phone, email, answers, profile, timeToCompleteSeconds } = req.body || {};
+    const { firstName, lastName, phone, email, profile, timeToCompleteSeconds } = req.body || {};
     const questions = JSON.parse(row.questions);
 
-    if (!Array.isArray(answers) || answers.length !== questions.length) {
-      return res.status(400).json({ error: 'Answers do not match this scorecard.' });
-    }
+    const checked = validateAnswers(questions, (req.body || {}).answers);
+    if (checked.error && checked.error.startsWith('Answers do not match')) return res.status(400).json({ error: checked.error });
     if (!firstName?.trim() || !lastName?.trim() || !phone?.trim() || !email?.trim()) {
       return res.status(400).json({ error: 'Name, phone number, and email are required.' });
     }
-    for (let i = 0; i < questions.length; i += 1) {
-      const idx = answers[i];
-      if (!Number.isInteger(idx) || idx < 0 || idx >= questions[i].options.length) {
-        return res.status(400).json({ error: `Invalid answer for question ${i + 1}.` });
-      }
-    }
+    if (checked.error) return res.status(400).json({ error: checked.error });
+    const { answers } = checked;
 
     const pc = parseProfileCapture(row.profile_capture);
     const profileCheck = validateProfile(pc, profile);

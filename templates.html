@@ -49,35 +49,16 @@
     <div class="container">
       <h1 style="font-size:clamp(2.2rem,4.4vw,3.2rem);">Ready-to-go scorecard templates</h1>
       <p class="hero-sub">Start generating leads in minutes with a template built for your industry — every one adjustable, on-brand, and ready for Naira checkout.</p>
-      <div class="hero-proof">Over 60 templates across 20 Nigerian industries, from real estate to Japa relocation — each with 8–14 questions across 3 scoring categories, ready to adjust and publish.</div>
+      <div class="hero-proof">125 templates across 38 Nigerian sectors, from POS stands and salons to schools, farms and Japa. Each one asks gentle, everyday questions, then reads people's own answers back to them on their result.</div>
     </div>
   </section>
 
   <section class="section" style="padding-top:20px;">
     <div class="container">
 
-      <div class="filter-row">
-        <button class="filter-pill active" data-filter="all">All Templates</button>
-        <button class="filter-pill" data-filter="realestate">Real Estate</button>
-        <button class="filter-pill" data-filter="finance">Finance &amp; Insurance</button>
-        <button class="filter-pill" data-filter="it">IT &amp; Cybersecurity</button>
-        <button class="filter-pill" data-filter="coaching">Coaching &amp; Consulting</button>
-        <button class="filter-pill" data-filter="hr">HR &amp; Recruitment</button>
-        <button class="filter-pill" data-filter="fitness">Fitness &amp; Wellness</button>
-        <button class="filter-pill" data-filter="events">Events &amp; Waitlists</button>
-        <button class="filter-pill" data-filter="solar">Solar &amp; Power</button>
-        <button class="filter-pill" data-filter="japa">Relocation &amp; Study Abroad</button>
-        <button class="filter-pill" data-filter="auto">Automobile</button>
-        <button class="filter-pill" data-filter="weddings">Weddings</button>
-        <button class="filter-pill" data-filter="beauty">Beauty &amp; Skincare</button>
-        <button class="filter-pill" data-filter="security">Security Services</button>
-        <button class="filter-pill" data-filter="logistics">Logistics &amp; Freight</button>
-        <button class="filter-pill" data-filter="construction">Construction &amp; Interior Design</button>
-        <button class="filter-pill" data-filter="legal">Legal Services</button>
-        <button class="filter-pill" data-filter="agritech">AgriTech</button>
-        <button class="filter-pill" data-filter="foodservice">Food Service &amp; Catering</button>
-        <button class="filter-pill" data-filter="diaspora">Diaspora Finance</button>
-        <button class="filter-pill" data-filter="marketing">Marketing &amp; Advertising</button>
+      <div class="tpl-tools">
+        <input type="search" id="tpl-search" class="tpl-search" placeholder="Search 125+ templates: salon, POS, school, poultry…" aria-label="Search templates" />
+        <div class="filter-row" id="filter-row"><button class="filter-pill active" data-filter="all">All Templates</button></div>
       </div>
 
       <div class="tpl-grid" id="tpl-grid">
@@ -163,6 +144,7 @@
       const res = await fetch('/api/templates');
       const data = await res.json();
       templates = data.templates || [];
+      window.__tplData = data;
     } catch {
       grid.innerHTML = `<p style="color:var(--ink-faint);grid-column:1/-1;">Couldn't load templates right now — try refreshing.</p>`;
       return;
@@ -173,6 +155,7 @@
       return;
     }
 
+    Object.assign(CATEGORY_LABELS, (window.__tplData || {}).categoryLabels || {});
     const colorClasses = ['c1', 'c2', 'c3', 'c4'];
     grid.innerHTML = templates.map((t, i) => `
       <div class="tpl-card" data-category="${escapeHtmlTpl(t.filterCategory || '')}" data-template="${escapeHtmlTpl(t.slug)}">
@@ -221,7 +204,38 @@
     });
   }
 
-  loadTemplates();
+  loadTemplates().then(wireFilters);
+
+  // Sector pills built from the templates themselves, plus a search box.
+  function wireFilters() {
+    const grid = document.getElementById('tpl-grid');
+    const row = document.getElementById('filter-row');
+    const cards = [...grid.querySelectorAll('.tpl-card')];
+    if (!cards.length || !row) return;
+    const counts = {};
+    cards.forEach(c => { const k = c.dataset.category; counts[k] = (counts[k] || 0) + 1; });
+    row.innerHTML = `<button class="filter-pill active" data-filter="all">All (${cards.length})</button>` +
+      Object.keys(counts).sort((a, b) => (CATEGORY_LABELS[a] || a).localeCompare(CATEGORY_LABELS[b] || b))
+        .map(k => `<button class="filter-pill" data-filter="${escapeHtmlTpl(k)}">${escapeHtmlTpl(CATEGORY_LABELS[k] || k)} <small>${counts[k]}</small></button>`).join('');
+    let cat = 'all';
+    const search = document.getElementById('tpl-search');
+    const apply = () => {
+      const q = (search.value || '').trim().toLowerCase();
+      let shown = 0;
+      cards.forEach(c => {
+        const ok = (cat === 'all' || c.dataset.category === cat) && (!q || c.textContent.toLowerCase().includes(q));
+        c.style.display = ok ? '' : 'none'; if (ok) shown += 1;
+      });
+      let empty = document.getElementById('tpl-empty');
+      if (!shown) { if (!empty) { empty = document.createElement('p'); empty.id = 'tpl-empty'; empty.style.cssText = 'color:var(--ink-faint);grid-column:1/-1;'; grid.appendChild(empty); } empty.textContent = 'No templates match that yet. Try another word, or start from a blank scorecard.'; }
+      else if (empty) empty.remove();
+    };
+    row.querySelectorAll('.filter-pill').forEach(b => b.addEventListener('click', () => {
+      row.querySelectorAll('.filter-pill').forEach(x => x.classList.toggle('active', x === b));
+      cat = b.dataset.filter; apply();
+    }));
+    search.addEventListener('input', apply);
+  }
 
   // Same "logged in?" nav swap as index.html — this page never had it, so it
   // always showed Login/Get started even to a signed-in visitor.

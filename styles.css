@@ -660,3 +660,10 @@ table.compare tr:last-child td { border-bottom: none; }
   padding: 8px 16px;
 }
 body.is-preview { padding-top: 48px; }
+
+/* template gallery search + sector pills */
+.tpl-tools { display: flex; flex-direction: column; gap: 14px; margin-bottom: 26px; }
+.tpl-search { width: 100%; max-width: 560px; padding: 14px 18px; border-radius: 999px; border: 1.5px solid var(--line); font: 600 15px var(--font-body); background: var(--surface); color: var(--ink); }
+.tpl-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-pill small { opacity: .6; font-weight: 700; margin-left: 2px; }

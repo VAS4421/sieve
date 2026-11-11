@@ -181,28 +181,70 @@
     bar.style.display = step >= scorecard.questions.length ? 'none' : 'flex';
   }
 
+  // Question formats (see app/server/questions.js): 'choice' (a list),
+  // 'yesno' (warm labels, maybe an "I'd like help with this"), 'scale'
+  // (1–5 agreement) and 'text' (an open "about you" box). "About you"
+  // questions get a gentle note that they don't affect the score.
+  const firstAboutIdx = scorecard.questions.findIndex(q => q.kind === 'about');
+
+  function answerControlsHtml(q) {
+    const prev = answers[step];
+    if (q.format === 'text') {
+      return `
+        <textarea id="d-text" class="tk-text" rows="4" maxlength="1000" placeholder="Type as much or as little as you like">${escapeHtml(typeof prev === 'string' ? prev : '')}</textarea>
+        <div class="tk-text-actions">
+          <button class="tk-skip" id="d-skip" type="button">Skip</button>
+          <button class="btn btn-accent" id="d-next" type="button">Continue →</button>
+        </div>`;
+    }
+    if (q.format === 'scale') {
+      const opts = q.options;
+      return `
+        <div class="tk-scale" role="radiogroup" aria-label="${escapeHtml(q.text)}">
+          ${opts.map((opt, i) => `<button class="demo-opt tk-scale-btn${prev === i ? ' is-on' : ''}" data-i="${i}" role="radio" aria-checked="${prev === i}" title="${escapeHtml(opt.label)}"><b>${i + 1}</b><span>${escapeHtml(opt.label)}</span></button>`).join('')}
+        </div>
+        <div class="tk-scale-ends"><span>${escapeHtml(opts[0].label)}</span><span>${escapeHtml(opts[opts.length - 1].label)}</span></div>`;
+    }
+    const cls = q.format === 'yesno' ? 'demo-answers tk-yesno' : 'demo-answers';
+    return `<div class="${cls}">
+      ${q.options.map((opt, i) => `<button class="demo-opt${opt.help ? ' tk-help' : ''}${prev === i ? ' is-on' : ''}" data-i="${i}">${opt.help ? '<span class="tk-help-ic" aria-hidden="true">✋</span>' : ''}${escapeHtml(opt.label)}</button>`).join('')}
+    </div>`;
+  }
+
   function renderQuestion() {
     const q = scorecard.questions[step];
     renderProgress();
+    const isAbout = q.kind === 'about';
+    const aboutIntro = isAbout && step === firstAboutIdx
+      ? `<div class="tk-about-note"><b>Nearly done. A few quick questions about you.</b><span>These don't affect your score. They help us make your next step useful.</span></div>`
+      : (isAbout ? `<div class="tk-about-chip">About you · not scored</div>` : '');
     root.innerHTML = `
-      <div class="demo-body">
+      <div class="demo-body tk-q-${escapeHtml(q.format || 'choice')}">
         ${step > 0 ? `<div class="demo-back" id="d-back">← Back</div>` : ''}
+        ${aboutIntro}
         <div class="demo-q">${escapeHtml(q.text)}</div>
-        <div class="demo-answers">
-          ${q.options.map((opt, i) => `<button class="demo-opt" data-i="${i}">${escapeHtml(opt.label)}</button>`).join('')}
-        </div>
+        ${q.hint ? `<p class="tk-hint">${escapeHtml(q.hint)}</p>` : ''}
+        ${answerControlsHtml(q)}
       </div>
     `;
+    const advance = (value) => {
+      answers[step] = value;
+      answers.length = step + 1;
+      step += 1;
+      render();
+    };
     if (step > 0) {
-      document.getElementById('d-back').addEventListener('click', () => { step -= 1; answers.pop(); render(); });
+      document.getElementById('d-back').addEventListener('click', () => { step -= 1; render(); });
     }
     root.querySelectorAll('.demo-opt').forEach(btn => {
-      btn.addEventListener('click', () => {
-        answers[step] = parseInt(btn.dataset.i, 10);
-        step += 1;
-        render();
-      });
+      btn.addEventListener('click', () => advance(parseInt(btn.dataset.i, 10)));
     });
+    if (q.format === 'text') {
+      const box = document.getElementById('d-text');
+      box.focus();
+      document.getElementById('d-next').addEventListener('click', () => advance(box.value.trim()));
+      document.getElementById('d-skip').addEventListener('click', () => advance(''));
+    }
   }
 
   const BAND_COLOR = { strong: '#16825D', developing: '#B3720C', weak: '#B3261E' };
@@ -516,12 +558,32 @@
         <p class="rx-kicker">In your own words</p>
         <h2 class="rx-h2">What your answers tell us.</h2>
         <div class="rx-quotes">${ins.map((a, i) => `
-          <div class="rx-quote ${i >= 3 ? 'more' : ''}">
+          <div class="rx-quote ${a.help ? 'help' : ''} ${i >= 3 ? 'more' : ''}">
             <p class="rx-q-q">${escapeHtml(a.question)}</p>
             <p class="rx-q-a">“${escapeHtml(a.answer)}”</p>
             <p class="rx-q-i">${escapeHtml(a.insight)}</p>
           </div>`).join('')}</div>
         ${ins.length > 3 ? `<button class="rx-more" type="button" id="rx-more">See all ${ins.length} insights</button>` : ''}
+      </section>` : '';
+
+    // 5b. typical signs for their tier, and everything they told us outside the score
+    const signs = p.typicalSigns || [];
+    const signsBlock = signs.length ? `
+      <section class="rx-section rx-signs">
+        <p class="rx-kicker">Sound familiar?</p>
+        <h2 class="rx-h2">People who land at ${escapeHtml(p.tierLabel)} usually notice this.</h2>
+        <ul class="rx-signs-list">${signs.map(t => `<li><i aria-hidden="true"></i><span>${escapeHtml(t)}</span></li>`).join('')}</ul>
+      </section>` : '';
+    const about = p.aboutYou || [];
+    const helpWanted = p.helpWanted || [];
+    const ABOUT_TAG = { situation: 'Where you are', goal: 'Where you want to be', obstacle: "What's in the way", help: 'How you like to be helped', note: 'In your words', other: 'You told us' };
+    const toldBlock = (about.length || helpWanted.length) ? `
+      <section class="rx-section rx-told">
+        <p class="rx-kicker">We listened</p>
+        <h2 class="rx-h2">${name ? `${name}, here's` : "Here's"} what you told us.</h2>
+        ${about.length ? `<div class="rx-told-grid">${about.map(a => `
+          <div class="rx-told-card k-${escapeHtml(a.key)}"><span>${escapeHtml(ABOUT_TAG[a.key] || ABOUT_TAG.other)}</span><p>“${escapeHtml(a.answer)}”</p></div>`).join('')}</div>` : ''}
+        ${helpWanted.length ? `<div class="rx-told-help"><b>✋ You asked for help with</b><ul>${helpWanted.map(h => `<li>${escapeHtml(h.question)}</li>`).join('')}</ul><p>That's noted. It's where we'd start.</p></div>` : ''}
       </section>` : '';
 
     // 6. the next step
@@ -539,6 +601,8 @@
             <p class="rx-offer-text">${escapeHtml(p.recommendation)}</p>
             <ul class="rx-offer-why">
               <li>Built around <b>your</b> answers, not a generic pitch</li>
+              ${helpWanted.length ? `<li>Starts with what you asked for help with</li>` : ''}
+              ${p.preferredHelp ? `<li>The way you said you like to be helped: <b>${escapeHtml(p.preferredHelp)}</b></li>` : ''}
               ${cats.length > 1 ? `<li>Starts with <b>${escapeHtml(weakest.label)}</b>, your quickest win</li>` : '<li>Know exactly where to start</li>'}
               <li>Best done while your result is fresh</li>
             </ul>
@@ -572,7 +636,7 @@
         </div>
       </section>`;
 
-    root.innerHTML = `<div class="rx">${hero}${pair}${mapBlock}${gapBlock}${catBlock}${insBlock}${ctaBlock}${keep}</div>
+    root.innerHTML = `<div class="rx">${hero}${signsBlock}${pair}${mapBlock}${gapBlock}${catBlock}${insBlock}${toldBlock}${ctaBlock}${keep}</div>
       ${hasCta ? `<div class="rx-sticky" id="rx-sticky" aria-hidden="true"><span><b>${p.overall}%</b> ${cats.length > 1 ? `· your quickest win is ${escapeHtml(weakest.label)}` : `· ${escapeHtml(p.tierLabel)}`}</span><a class="rx-btn" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener" tabindex="-1">${ctaLabel}${arrow}</a></div>` : ''}`;
     document.body.classList.add('is-result');
     const bar = document.querySelector('.demo-progress-wrap');

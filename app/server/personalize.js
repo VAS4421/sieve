@@ -16,6 +16,8 @@
 // personalization record). None of that applies to owner-written text, of
 // course — that's exactly what the owner typed, verbatim, every time.
 
+const { isAbout, readAbout } = require('./questions');
+
 function hashSeed(str) {
   let h = 5381;
   for (let i = 0; i < str.length; i += 1) {
@@ -399,6 +401,28 @@ function ctaHeadline(firstName, weakestLabel, seed) {
   return fn(firstName, weakestLabel);
 }
 
+// Shown when someone chose "I'd like help with this" — they raised their
+// hand, so this reads as an acknowledgement, never a grade.
+const HELP_INSIGHT = [
+  "You put your hand up for this one, and that's the most useful answer anyone can give. It's noted, and it's the first thing worth talking through.",
+  "Thank you for flagging this. Asking for help on it isn't a weakness; it's usually exactly where the quickest progress comes from.",
+  "Noted, and it's a good instinct. Most people who flag this find it moves faster with someone alongside them.",
+];
+
+const CTA_HEADLINE_HELP = [
+  (n, t) => `${n}, you asked for help with ${t}. Shall we start there?`,
+  (n, t) => `You flagged ${t}, ${n}. Want to talk it through?`,
+  (n, t) => `${n}, let's start with what you asked for: ${t}.`,
+];
+
+// Turns "Do you track every sale in one place?" into a short topic phrase for
+// a headline when the question has no owner-written `topic`.
+function shortTopic(t) {
+  const s = String(t || '').trim().replace(/[?.!]+$/, '');
+  if (s.length <= 60 && !/^(do|does|did|have|has|is|are|can|will|would|i|we)/i.test(s)) return s.charAt(0).toLowerCase() + s.slice(1);
+  return 'this';
+}
+
 // `areaLabels` are the categories this question is scored in; `bestLabel` is
 // the strongest option's text. Both come from the scorecard itself.
 function answerInsight(questionText, chosenLabel, rankFraction, seed, areaLabels = [], bestLabel = '') {
@@ -465,9 +489,20 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
   });
 
   const answerInsights = questions.map((q, i) => {
+    if (isAbout(q)) return null; // "about you" answers are read back in their own block, never graded
     const chosenIdx = answers[i];
-    const chosen = q.options[chosenIdx];
+    const chosen = (q.options || [])[chosenIdx];
     if (!chosen) return null;
+    if (chosen.help) {
+      return {
+        question: q.text,
+        answer: chosen.label,
+        help: true,
+        insight: chosen.insight && chosen.insight.trim()
+          ? chosen.insight.trim()
+          : pick(`${seedBase}:q${i}:help`, HELP_INSIGHT),
+      };
+    }
     const totals = q.options.map(o => Object.values(o.score || {}).reduce((a, b) => a + b, 0));
     const chosenTotal = totals[chosenIdx];
     const sorted = [...totals].sort((a, b) => b - a); // highest first
@@ -484,6 +519,13 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
     };
   }).filter(Boolean);
 
+  // What they told us outside the score, and what they asked for help with.
+  const { about, helpWanted } = readAbout(questions, answers);
+  const preferred = about.find(a => a.key === 'help');
+  const typicalSigns = Array.isArray(tierConfig.signs)
+    ? tierConfig.signs.map(x => String(x || '').trim()).filter(Boolean).slice(0, 6)
+    : [];
+
   const ownerHeadline = tierConfig.headline && tierConfig.headline.trim();
   const ownerMessage = tierConfig.message && tierConfig.message.trim();
   const recommendationUrl = (tierConfig.recommendationUrl && tierConfig.recommendationUrl.trim()) || '';
@@ -497,8 +539,18 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
   // the same as every other field in this file, but this one field alone
   // had no generated fallback and silently produced no CTA at all), the
   // text gets generated instead of the block just disappearing.
-  const recommendation = ownerRecommendation
+  let recommendation = ownerRecommendation
     || (recommendationUrl ? tierRecommendation(overall, weakest.label, `${seedBase}:recommendation`) : '');
+  // A preferred-help answer can carry its own next step (option.cta), which
+  // beats the tier's — the person told us how they'd like to be helped.
+  const prefCta = preferred && preferred.cta && preferred.cta.url ? preferred.cta : null;
+  const finalUrl = (prefCta && prefCta.url) || recommendationUrl;
+  const finalLabel = (prefCta && prefCta.label) || recommendationLabel;
+  if (!recommendation && prefCta) recommendation = tierRecommendation(overall, weakest.label, `${seedBase}:recommendation`);
+  let ctaLine = '';
+  if (recommendation && helpWanted.length) {
+    ctaLine = pick(`${seedBase}:ctaHelp`, CTA_HEADLINE_HELP)(firstName, shortTopic(helpWanted[0].topic));
+  }
 
   return {
     greetingName: firstName,
@@ -508,16 +560,20 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
     tierHeadline: ownerHeadline || tierHeadline(overall, `${seedBase}:tier`),
     tierMessage: ownerMessage || tierMessage(overall, strongest.label, weakest.label, `${seedBase}:tier`),
     recommendation,
-    recommendationUrl,
-    recommendationLabel,
+    recommendationUrl: finalUrl,
+    recommendationLabel: finalLabel,
     // Only meaningful once there's an actual recommendation to sit next to —
     // take.js only renders the CTA block at all when `recommendation` is set.
     // Always tied to the weakest category's own label, so the recommendation
     // and the "Book Now" CTA beneath it read as one connected thought on
     // every scorecard, not just the ones with an obvious weak point.
-    ctaHeadline: recommendation ? ctaHeadline(firstName, weakest.label, `${seedBase}:cta`) : '',
+    ctaHeadline: recommendation ? (ctaLine || ctaHeadline(firstName, weakest.label, `${seedBase}:cta`)) : '',
     categoryNarratives,
     answerInsights,
+    aboutYou: about,
+    helpWanted,
+    preferredHelp: preferred ? preferred.answer : '',
+    typicalSigns,
   };
 }
 

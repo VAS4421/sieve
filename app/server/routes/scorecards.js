@@ -8,6 +8,7 @@ const { run, get, all } = require('../db');
 const requireAuth = require('../middleware/requireAuth');
 const { computeScore } = require('../scoring');
 const { buildPersonalizedResult } = require('../personalize');
+const { publicQuestion, validateAnswers, normalizeQuestion, questionError } = require('../questions');
 const { publicProfileCapture, resolveBrandName } = require('./public');
 const { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture } = require('../demographics');
 const { appUrl } = require('../mailer');
@@ -202,10 +203,13 @@ router.put('/:id', async (req, res, next) => {
     if (!Array.isArray(questions) || !questions.length) {
       return res.status(400).json({ error: 'A scorecard needs at least one question.' });
     }
-    for (const q of questions) {
-      if (!q.text || !Array.isArray(q.options) || q.options.length < 2) {
-        return res.status(400).json({ error: 'Every question needs text and at least two options.' });
-      }
+    const normalized = questions.map(normalizeQuestion);
+    for (let i = 0; i < normalized.length; i += 1) {
+      const err = questionError(normalized[i], i);
+      if (err) return res.status(400).json({ error: err });
+    }
+    if (!normalized.some(q => q.kind !== 'about')) {
+      return res.status(400).json({ error: 'A scorecard needs at least one scored question.' });
     }
 
     await run(
@@ -215,7 +219,7 @@ router.put('/:id', async (req, res, next) => {
         title || row.title,
         intro ?? row.intro,
         JSON.stringify(categories),
-        JSON.stringify(questions),
+        JSON.stringify(normalized),
         JSON.stringify(tiers && tiers.length ? tiers : JSON.parse(row.tiers)),
         (brandName && brandName.trim()) || null,
         (coverImage && coverImage.trim()) || null,
@@ -448,10 +452,7 @@ router.get('/preview/:slug', async (req, res, next) => {
     const row = await get('SELECT * FROM scorecards WHERE slug = ? AND user_id = ?', [req.params.slug, req.user.id]);
     if (!row) return res.status(404).json({ error: 'Scorecard not found.' });
 
-    const questions = JSON.parse(row.questions).map(q => ({
-      text: q.text,
-      options: q.options.map(o => ({ label: o.label })),
-    }));
+    const questions = JSON.parse(row.questions).map(publicQuestion);
 
     res.json({
       slug: row.slug,
@@ -475,18 +476,12 @@ router.post('/preview/:slug/submit', async (req, res, next) => {
     const row = await get('SELECT * FROM scorecards WHERE slug = ? AND user_id = ?', [req.params.slug, req.user.id]);
     if (!row) return res.status(404).json({ error: 'Scorecard not found.' });
 
-    const { firstName, lastName, phone, email, answers, timeToCompleteSeconds } = req.body || {};
+    const { firstName, lastName, phone, email, timeToCompleteSeconds } = req.body || {};
     const questions = JSON.parse(row.questions);
 
-    if (!Array.isArray(answers) || answers.length !== questions.length) {
-      return res.status(400).json({ error: 'Answers do not match this scorecard.' });
-    }
-    for (let i = 0; i < questions.length; i += 1) {
-      const idx = answers[i];
-      if (!Number.isInteger(idx) || idx < 0 || idx >= questions[i].options.length) {
-        return res.status(400).json({ error: `Invalid answer for question ${i + 1}.` });
-      }
-    }
+    const checked = validateAnswers(questions, (req.body || {}).answers);
+    if (checked.error) return res.status(400).json({ error: checked.error });
+    const { answers } = checked;
 
     const { categoryScores, overall, tier } = computeScore(row, answers);
     const lead = { firstName, lastName, phone, email };

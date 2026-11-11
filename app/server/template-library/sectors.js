@@ -1,0 +1,107 @@
+// Sector labels for the gallery, and the "about you" answer sets each sector
+// starts from. A template can override any of these with its own `about`.
+
+const CATEGORY_LABELS = {
+  realestate: 'Real Estate & Property',
+  finance: 'Finance & Insurance',
+  money: 'Personal Money',
+  it: 'IT & Cybersecurity',
+  startups: 'Tech & Startups',
+  coaching: 'Coaching & Consulting',
+  hr: 'HR & Recruitment',
+  careers: 'Careers & Jobs',
+  fitness: 'Fitness & Wellness',
+  health: 'Health & Clinics',
+  events: 'Events, Photo & Waitlists',
+  solar: 'Solar, Power & Gas',
+  japa: 'Relocation & Study Abroad',
+  auto: 'Automobile',
+  transport: 'Transport & Ride-hailing',
+  weddings: 'Weddings & Family',
+  beauty: 'Beauty & Skincare',
+  hair: 'Hair, Salons & Barbing',
+  fashion: 'Fashion & Tailoring',
+  security: 'Security Services',
+  logistics: 'Logistics & Freight',
+  construction: 'Construction & Interiors',
+  homeservices: 'Home & Artisan Services',
+  legal: 'Legal & Compliance',
+  agritech: 'Farming & Agribusiness',
+  export: 'Export & Trade',
+  foodservice: 'Catering',
+  food: 'Restaurants & Bakeries',
+  retail: 'Retail, Shops & Markets',
+  pos: 'POS & Agent Banking',
+  ecommerce: 'Online Selling',
+  manufacturing: 'Manufacturing & NAFDAC',
+  education: 'Schools & Education',
+  faith: 'Churches & NGOs',
+  creators: 'Creators & Media',
+  hospitality: 'Hotels & Shortlets',
+  diaspora: 'Diaspora',
+  marketing: 'Marketing & Advertising',
+};
+
+// What every template asks after the scored questions unless it says otherwise.
+const DEFAULT_ABOUT = {
+  situationQ: 'Which best describes where you are right now?',
+  situation: ['Just starting out', 'Up and running, but it feels messy', 'Steady, and ready to grow', 'Doing well, looking for the next level'],
+  goalQ: 'What would you most like to be true 90 days from now?',
+  goal: ['More customers coming in', 'More money left at the end of the month', 'Less stress and firefighting', 'A clear plan I can follow'],
+  obstacleQ: "What's getting in the way most?",
+  obstacle: ['Not enough time', 'Not enough money to invest', "Not sure what to do first", 'Doing it all alone'],
+  helpQ: 'What kind of help would suit you best?',
+  noteQ: "Anything else you'd like us to know? (optional)",
+};
+
+// Preferred kind of help — quietly tells the owner how ready someone is.
+const HELP_OPTIONS = ['Tips I can follow on my own', 'A free call to talk it through', 'Someone to work on it with me', 'Someone to handle it for me'];
+
+const PERSONAL = {
+  situationQ: 'Which best describes you right now?',
+  goalQ: 'What would you most like to be true 90 days from now?',
+  obstacleQ: "What's held you back so far?",
+};
+
+const SECTOR_ABOUT = {
+  realestate: { situation: ['Renting and thinking of buying', 'Looking to invest', 'I own property and want more from it', 'Just exploring'], goal: ['Find the right property', 'Get my paperwork right', 'Earn steady rental income', 'Know exactly what I can afford'], obstacle: ['Not sure who to trust', 'Prices keep moving', 'Saving the deposit', 'Documents and land issues'] },
+  finance: { situation: ['Small business owner', 'Salary earner', 'Self-employed', 'Running a growing company'], goal: ['Clean, up-to-date records', 'Lower costs and tax surprises', 'Proper cover for what matters', 'Peace of mind about money'], obstacle: ["Don't know where to start", 'No time for paperwork', 'Cost of professional help', "Haven't found someone I trust"] },
+  money: { ...PERSONAL, situation: ['Student or just graduated', 'Earning a salary', 'Running my own thing', 'Supporting a family'], goal: ['Save every month without fail', 'Clear my debts', 'Build an emergency fund', 'Start investing'], obstacle: ['Income is not enough', 'Black tax and family needs', 'Hard to stay disciplined', "Don't know what to invest in"] },
+  it: { situation: ['Small team, no IT person', 'One IT person doing everything', 'Growing team, IT is a headache', 'Established IT, want it tighter'], goal: ['Fewer outages and surprises', 'Data that is backed up and safe', 'Staff who know the basics', 'Predictable IT costs'], obstacle: ['No in-house expertise', 'Budget', 'No time to sort it', 'Old equipment'] },
+  startups: { situation: ['Idea stage', 'Building the first version', 'Launched, finding customers', 'Growing, raising money'], goal: ['First paying customers', 'A product people keep using', 'Investor-ready numbers', 'A small, strong team'], obstacle: ['Funding', 'Finding the right people', 'Not sure what customers want', 'Too many things at once'] },
+  coaching: { situation: ['Thinking of starting', 'Started, under 2 years', 'Established, ready to scale', 'Leading a team'], goal: ['More consistent income', 'Clear direction', 'Better systems', 'Time back for myself'], obstacle: ['Doing everything myself', 'No clear plan', 'Self-doubt', 'Cash flow'] },
+  hr: { situation: ['Hiring for the first time', 'Small team under 20', 'Growing team 20–100', 'Over 100 staff'], goal: ['Hire the right people faster', 'Keep good staff longer', 'Clear roles and reviews', 'A happier team'], obstacle: ['Finding good candidates', 'Staff leaving', 'No HR person', 'Policies are unclear'] },
+  careers: { ...PERSONAL, situation: ['Student or fresh graduate', 'Serving NYSC', 'Employed, want a change', 'Out of work right now'], goal: ['Land a job I like', 'Get a remote role', 'Earn a promotion or raise', 'Switch to a new field'], obstacle: ['Not hearing back from applications', 'Lack of experience', 'Not sure what I want', 'No network'] },
+  fitness: { ...PERSONAL, situation: ['Not exercising at all', 'On and off', 'Training regularly', 'Training hard, want better results'], goal: ['Lose weight', 'Get stronger and fitter', 'More energy day to day', 'Eat better'], obstacle: ['Time', 'Motivation', "Don't know what to do", 'Food and late nights'] },
+  health: { ...PERSONAL, situation: ['Generally well', 'Managing a condition', 'Caring for someone else', 'Running a health business'], goal: ['Feel better day to day', 'Catch problems early', 'A routine I can keep', 'Better care for my family'], obstacle: ['Cost of care', 'Time', 'Not sure where to go', 'Putting it off'] },
+  events: { situation: ['Planning an event soon', 'Just started in events', 'Established vendor', 'Brand or company'], goal: ['More bookings', 'A smooth, stress-free event', 'Better prices', 'Repeat clients'], obstacle: ['Budget', 'Finding reliable vendors', 'Last-minute changes', 'Getting the word out'] },
+  solar: { situation: ['Home on generator and NEPA', 'Small business', 'Large business or factory', 'Already have some solar'], goal: ['Steady power all day', 'Cut fuel spending', 'Quiet nights without the gen', 'Know the right system size'], obstacle: ['Upfront cost', 'Not sure who to trust', "Don't know what size I need", 'Bad past experience'] },
+  japa: { ...PERSONAL, situation: ['Just thinking about it', 'Researching countries', 'Gathering documents', 'Ready to apply'], goal: ['Pick the right country and route', 'Get my documents complete', 'Have the funds proof sorted', 'Submit a strong application'], obstacle: ['Money', 'Confusing requirements', 'Fear of refusal', 'Family situation'] },
+  auto: { situation: ['Buying my first car', 'Replacing my car', 'Buying for business', 'Just looking'], goal: ['A reliable car I can afford', 'Fewer repairs', 'Good financing', 'Avoid being cheated'], obstacle: ['Budget', 'Trusting sellers', 'Car history unknown', 'Financing'] },
+  transport: { situation: ['Driving for myself', 'Driving for an owner', 'Own a few vehicles', 'Run a fleet'], goal: ['Take home more each week', 'Fewer breakdowns', 'Own my vehicle', 'Better drivers'], obstacle: ['Fuel prices', 'Repairs', 'Hire-purchase payments', 'Unreliable drivers'] },
+  weddings: { ...PERSONAL, situation: ['Newly engaged', 'Date fixed', 'Wedding is close', 'Married already'], goal: ['Stay on budget', 'Book the right vendors', 'Enjoy the day stress-free', 'Start strong as a couple'], obstacle: ['Budget', 'Family expectations', 'Too many decisions', 'Time'] },
+  beauty: { situation: ['Customer looking for the right products', 'Beauty business just starting', 'Established beauty business', 'Building my own brand'], goal: ['Clearer, healthier skin', 'More clients', 'A brand people trust', 'Better products for me'], obstacle: ['Too many products, not sure what works', 'Budget', 'Getting clients', 'NAFDAC and paperwork'] },
+  hair: { situation: ['Starting out', 'Working from home or a small space', 'Running a salon or shop', 'Several stands or branches'], goal: ['A full appointment book', 'Higher prices clients happily pay', 'Reliable staff', 'Open another branch'], obstacle: ['Getting new clients', 'Staff', 'Power and running costs', 'Pricing'] },
+  fashion: { situation: ['Sewing from home', 'Small shop with apprentices', 'Fashion brand selling online', 'Bigger production'], goal: ['Deliver every order on time', 'More orders', 'A known brand', 'Better profit per outfit'], obstacle: ['Deadlines and rush orders', 'Getting customers', 'Fabric costs', 'Staff'] },
+  security: { situation: ['Homeowner', 'Estate or landlord', 'Business premises', 'Large company'], goal: ['Feel safe at night', 'Know who comes in and out', 'Reliable guards', 'Proper alarm and CCTV'], obstacle: ['Cost', 'Unreliable guards', 'Not sure what I need', 'Past incident'] },
+  logistics: { situation: ['Occasional shipments', 'Regular local deliveries', 'Interstate or import shipments', 'High volume'], goal: ['On-time deliveries', 'Lower cost per delivery', 'Fewer damaged or lost items', 'Easy tracking'], obstacle: ['Unreliable partners', 'Cost', 'Bad roads and delays', 'No tracking'] },
+  construction: { situation: ['Planning a project', 'Project underway', 'Renovating', 'Developer or contractor'], goal: ['Finish on budget', 'Finish on time', 'Quality I can trust', 'Clear plans and costs'], obstacle: ['Rising material prices', 'Unreliable workers', 'No clear plan', 'Approvals'] },
+  homeservices: { situation: ['Homeowner or tenant', 'Office or estate manager', 'Artisan or service business', 'Growing service company'], goal: ['Jobs done right the first time', 'Reliable people on call', 'More steady jobs', 'Better prices'], obstacle: ['Finding trustworthy artisans', 'Cost', 'Getting customers', 'Time'] },
+  legal: { situation: ['Personal matter', 'Small business', 'Growing company', 'Not sure yet'], goal: ['Sort out the issue', 'Proper documents and contracts', 'Stay compliant', 'Peace of mind'], obstacle: ['Cost of a lawyer', 'Not sure what I need', 'Time', 'Fear of the process'] },
+  agritech: { situation: ['Small farm', 'Medium farm', 'Large or commercial farm', 'Thinking of starting'], goal: ['Bigger, healthier harvest', 'Fewer losses', 'Better prices for my produce', 'Access to funding'], obstacle: ['Funding', 'Storage and transport', 'Weather and disease', 'Finding buyers'] },
+  export: { situation: ['Thinking of exporting', 'Exported once or twice', 'Exporting regularly', 'Buying from farmers to export'], goal: ['First export order', 'Steady foreign buyers', 'Paperwork right first time', 'Better margins'], obstacle: ['Documentation', 'Finding buyers', 'Quality standards', 'Funding the order'] },
+  foodservice: { situation: ['Planning an event', 'Company needing regular meals', 'Caterer starting out', 'Established caterer'], goal: ['Great food on the day', 'Stay on budget', 'Reliable service', 'More bookings'], obstacle: ['Budget', 'Trusting a caterer', 'Numbers keep changing', 'Getting clients'] },
+  food: { situation: ['Home kitchen or small stand', 'Restaurant or bakery', 'Several outlets', 'Planning to open'], goal: ['More customers every day', 'Better profit per plate', 'Less waste', 'Consistent quality'], obstacle: ['Food prices', 'Staff', 'Power and gas costs', 'Getting the word out'] },
+  retail: { situation: ['Small shop or kiosk', 'Market stall', 'Supermarket or big shop', 'Wholesaler or distributor'], goal: ['More sales', 'Never run out of what sells', 'Know my real profit', 'Less stock lost'], obstacle: ['Rising prices', 'Customers buying on credit', 'Stock going missing', 'Competition'] },
+  pos: { situation: ['One POS stand', 'A few POS stands', 'POS plus a shop', 'Planning to start'], goal: ['More transactions daily', 'Fewer failed transactions', 'Never run out of cash', 'Open another stand'], obstacle: ['Network failures', 'Cash for float', 'Fraud and fake alerts', 'Competition nearby'] },
+  ecommerce: { situation: ['Selling on WhatsApp or Instagram', 'Have a website', 'Selling on Jumia or Konga', 'Planning to start'], goal: ['More orders every week', 'Fewer failed deliveries', 'Repeat customers', 'A proper online store'], obstacle: ['Getting seen', 'Delivery problems', 'Customers who don\'t pay', 'Time'] },
+  manufacturing: { situation: ['Making products at home', 'Small factory', 'Growing production', 'Planning to start'], goal: ['NAFDAC or SON approval', 'More consistent quality', 'Lower cost per unit', 'Bigger buyers'], obstacle: ['Regulation and paperwork', 'Power costs', 'Funding equipment', 'Raw material prices'] },
+  education: { situation: ['Parent or student', 'Teacher or tutor', 'School owner', 'Training business'], goal: ['Better results', 'More enrolments', 'Fees paid on time', 'Happier parents and students'], obstacle: ['Money', 'Time', 'Staff', 'Not sure what works'] },
+  faith: { situation: ['Church or ministry', 'NGO or foundation', 'Community group', 'Just starting'], goal: ['Reach more people', 'Keep members or volunteers engaged', 'Steady funding', 'Better organisation'], obstacle: ['Funding', 'Volunteers', 'No clear system', 'Getting the word out'] },
+  creators: { situation: ['Just starting', 'Posting regularly, small audience', 'Growing audience', 'Earning from content'], goal: ['Grow my audience', 'First brand deal', 'Steady income from content', 'A schedule I can keep'], obstacle: ['Consistency', 'Ideas', 'Equipment', 'Getting paid fairly'] },
+  hospitality: { situation: ['Planning a shortlet', 'One shortlet or guesthouse', 'Several units', 'Hotel'], goal: ['Higher occupancy', 'Better reviews', 'Less hassle running it', 'More direct bookings'], obstacle: ['Power and running costs', 'Unreliable cleaners or staff', 'Getting bookings', 'Problem guests'] },
+  diaspora: { ...PERSONAL, situation: ['Abroad, sending money home', 'Abroad, investing at home', 'Planning to return', 'Family member at home'], goal: ['Invest safely at home', 'Know my money is used right', 'Build for retirement', 'Lower transfer costs'], obstacle: ['Trust', 'Distance', 'Paperwork', 'Not sure what to invest in'] },
+  marketing: { situation: ['Doing my own marketing', 'Have someone part-time', 'Agency or team', 'No marketing yet'], goal: ['More enquiries', 'Better return on ad spend', 'A clear brand', 'Consistent content'], obstacle: ['Budget', 'Time', 'Not sure what works', 'Past agency let me down'] },
+};
+
+module.exports = { CATEGORY_LABELS, SECTOR_ABOUT, DEFAULT_ABOUT, HELP_OPTIONS };

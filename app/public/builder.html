@@ -42,6 +42,7 @@
   <input type="file" id="cover-upload-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
 
   <script src="/app.js"></script>
+  <script src="/question-coach.js"></script>
   <script>
   // Sieve builder, laid out like the best quiz builders: areas on the left, the page itself in the middle
   // (click any text on it to edit), and settings for the selected item on the right.
@@ -85,7 +86,13 @@
   const sortedTiers = () => state.tiers.map((t, i) => ({ t, i })).sort((a, b) => b.t.min - a.t.min);
   const tierMax = (i) => { const s = sortedTiers(), pos = s.findIndex(x => x.i === i); return pos > 0 ? s[pos - 1].t.min - 1 : 100; };
   const catColor = (key) => COLORS[Math.max(0, state.categories.findIndex(c => c.key === key)) % COLORS.length];
-  const qCats = (qi) => { const q = state.questions[qi]; const on = new Set(activeCats[qi] || []); state.categories.forEach(c => { if (q.options.some(o => Number(o.score?.[c.key] || 0) > 0)) on.add(c.key); }); return state.categories.filter(c => on.has(c.key)); };
+  const qCats = (qi) => { const q = state.questions[qi]; if (!q || q.kind === 'about') return []; const on = new Set(activeCats[qi] || []); (q.cats || []).forEach(k => on.add(k)); state.categories.forEach(c => { if ((q.options || []).some(o => Number(o.score?.[c.key] || 0) !== 0)) on.add(c.key); }); return state.categories.filter(c => on.has(c.key)); };
+  const isAboutQ = (q) => q && q.kind === 'about';
+  const isTextQ = (q) => isAboutQ(q) && q.format === 'text';
+  const isGenQ = (q) => q && !isAboutQ(q) && (q.format === 'yesno' || q.format === 'scale');
+  const qValid = (q) => q.text.trim() && (isTextQ(q) || (q.options.length >= 2 && q.options.every(o => String(o.label || '').trim())));
+  // yes/no and scale questions build their own options from their settings
+  function regen(qi) { const q = state.questions[qi]; if (!isGenQ(q)) return; q.cats = qCats(qi).map(c => c.key); if (!q.cats.length && state.categories[0]) q.cats = [state.categories[0].key]; q.points = SieveQ.clampPoints(q.points); q.options = SieveQ.buildOptions(q); }
 
   /* ---------- autosave ---------- */
   let saveTimer = null, saving = false, dirty = false, saveAgain = false;
@@ -94,7 +101,7 @@
   async function save() {
     clearTimeout(saveTimer);
     if (saving) { saveAgain = true; return; }
-    if (!state.questions.length || state.questions.some(q => !q.text.trim() || q.options.length < 2)) { setStatus('dirty', 'Every question needs text and 2 answers to save'); return; }
+    if (!state.questions.length || state.questions.some(q => !q.text.trim() || (!isTextQ(q) && q.options.length < 2))) { setStatus('dirty', 'Every question needs text and 2 answers to save'); return; }
     saving = true; setStatus('saving', 'Saving…');
     try {
       const { scorecard } = await api(`/scorecards/${scorecardId}`, { method: 'PUT', body: {
@@ -134,7 +141,7 @@
           <div class="sb-oq ${SEL.type === 'q' && SEL.i === i ? 'on' : ''}" draggable="true" data-oq="${i}">
             <span class="sb-grip" title="Drag to reorder">${svg(I.drag)}</span><span class="sb-on">${i + 1}</span>
             <span class="sb-ot">${esc(q.text) || '<em>New question</em>'}</span>
-            <span class="sb-odots">${qCats(i).map(c => `<i style="background:${catColor(c.key)}" title="${esc(c.label)}"></i>`).join('')}</span>
+            <span class="sb-odots">${isAboutQ(q) ? '<em class="sb-about-tag" title="About you, not scored">About</em>' : ''}${qCats(i).map(c => `<i style="background:${catColor(c.key)}" title="${esc(c.label)}"></i>`).join('')}</span>
           </div>`).join('')}</div>
         <button class="sb-add" id="add-q">${svg(I.plus)}Add question</button>
         <div class="sb-flow muted">${svg(I.user)}<span>Lead details<small>Name, phone, email</small></span></div>
@@ -177,6 +184,7 @@
   }
 
   // the middle: the real page, editable in place
+  const ptsOf = (qi, o) => { const v = qCats(qi).map(cc => Number(o.score[cc.key] || 0)).reduce((a, x) => (Math.abs(x) > Math.abs(a) ? x : a), 0); return Math.round(v * 10) / 10; };
   function editable(key, value, ph, cls = '', multi = false) {
     return `<span class="sb-ed ${cls}" contenteditable="true" spellcheck="true" data-edit="${key}" data-ph="${esc(ph)}" ${multi ? 'data-multi="1"' : ''}>${esc(value || '')}</span>`;
   }
@@ -217,10 +225,11 @@
           <div class="sb-brand-static">${b}</div>
           <div class="sb-prog"><i style="width:${Math.round(((qi + 1) / n) * 100)}%"></i></div><div class="sb-count">Question ${qi + 1} of ${n}</div>
           ${editable('q:' + qi, q.text, 'Type your question', 'sb-h2', true)}
-          <div class="sb-answers">${q.options.map((o, oi) => `<div class="sb-ans"><span class="sb-letter">${LETTERS[oi] || oi + 1}</span>${editable(`o:${qi}:${oi}`, o.label, 'Answer text', 'sb-ans-t')}<span class="sb-ans-pts" title="Points">${qCats(qi).map(cc => Number(o.score[cc.key] || 0)).reduce((a, x) => Math.max(a, x), 0)}</span>${q.options.length > 2 ? `<button class="sb-ans-x" data-delopt="${oi}" title="Remove answer">×</button>` : ''}</div>`).join('')}
-            <button class="sb-ans add" id="add-opt">${svg(I.plus)}Add an answer</button></div>
+          ${isAboutQ(q) ? '<div class="sb-about-chip">About you · not scored</div>' : ''}
+          ${isTextQ(q) ? '<div class="sb-textbox">Their answer goes here, in their own words</div>' : `<div class="sb-answers ${q.format === 'scale' ? 'scale' : ''}">${q.options.map((o, oi) => `<div class="sb-ans ${o.help ? 'help' : ''}"><span class="sb-letter">${q.format === 'scale' ? oi + 1 : (o.help ? '✋' : LETTERS[oi] || oi + 1)}</span>${editable(`o:${qi}:${oi}`, o.label, 'Answer text', 'sb-ans-t')}${isAboutQ(q) ? '' : `<span class="sb-ans-pts" title="Points">${ptsOf(qi, o)}</span>`}${q.options.length > 2 && !isGenQ(q) ? `<button class="sb-ans-x" data-delopt="${oi}" title="Remove answer">×</button>` : ''}</div>`).join('')}
+            ${isGenQ(q) ? '' : `<button class="sb-ans add" id="add-opt">${svg(I.plus)}Add an answer</button>`}</div>`}
         </div></div>`;
-        $('#add-opt').onclick = () => { const score = {}; state.categories.forEach(cc => { score[cc.key] = 0; }); q.options.push({ label: '', score }); changed(); drawCanvas(); drawPanel(); setTimeout(() => { const e = $$('[data-edit^="o:' + qi + ':"]').pop(); e && e.focus(); }, 20); };
+        const addOpt = $('#add-opt'); if (addOpt) addOpt.onclick = () => { const score = {}; state.categories.forEach(cc => { score[cc.key] = 0; }); q.options.push({ label: '', score }); changed(); drawCanvas(); drawPanel(); setTimeout(() => { const e = $$('[data-edit^="o:' + qi + ':"]').pop(); e && e.focus(); }, 20); };
         $$('[data-delopt]').forEach(x => x.onclick = () => { q.options.splice(+x.dataset.delopt, 1); changed(); drawCanvas(); drawPanel(); });
       }
     } else if (AREA === 'results') {
@@ -260,8 +269,10 @@
     if (k === 'title') { state.title = v; $('#top-title').value = v; }
     else if (k === 'intro') state.intro = v;
     else if (k === 'brand') state.brandName = v;
-    else if (k === 'q') { state.questions[+a].text = v; const o = $(`[data-oq="${a}"] .sb-ot`); if (o) o.textContent = v || 'New question'; }
-    else if (k === 'o') { state.questions[+a].options[+b].label = v; const m = $(`[data-mirror="o:${a}:${b}"]`); if (m) m.textContent = v || `Answer ${LETTERS[+b]}`; }
+    else if (k === 'q') { state.questions[+a].text = v; const o = $(`[data-oq="${a}"] .sb-ot`); if (o) o.textContent = v || 'New question'; clearTimeout(window.__coachT); window.__coachT = setTimeout(() => { if (AREA === 'questions' && SEL.type === 'q' && SEL.i === +a) drawPanel(); }, 700); }
+    else if (k === 'o') { const qq = state.questions[+a]; qq.options[+b].label = v;
+      if (qq.format === 'yesno' && !isAboutQ(qq)) { qq.labels = qq.labels || {}; qq.labels[qq.options[+b].help ? 'help' : (+b === 0 ? 'yes' : 'no')] = v; }
+      if (qq.format === 'scale' && !isAboutQ(qq)) { qq.scaleLabels = (qq.scaleLabels && qq.scaleLabels.length === 5 ? qq.scaleLabels : SieveQ.SCALE_LABELS.slice()); qq.scaleLabels[+b] = v; } const m = $(`[data-mirror="o:${a}:${b}"]`); if (m) m.textContent = v || `Answer ${LETTERS[+b]}`; }
     else if (k === 'cat-headline') state.categories[+a].headline = v;
     else if (k === 't-head') state.tiers[+a].headline = v;
     else if (k === 't-msg') state.tiers[+a].message = v;
@@ -306,24 +317,60 @@
         <button data-qa="up" title="Move up" ${qi === 0 ? 'disabled' : ''}>${svg(I.up)}</button><button data-qa="down" title="Move down" ${qi === state.questions.length - 1 ? 'disabled' : ''}>${svg(I.down)}</button>
         <button data-qa="dup" title="Duplicate">${svg(I.copy)}</button><button data-qa="del" title="Delete" class="danger">${svg(I.trash)}</button></div></div>
       <div class="sb-pb">
-        <div class="sb-group"><div class="sb-gt">Scores towards</div>
+        <div class="sb-group"><div class="sb-gt">Question type</div>
+          <div class="sb-seg">${[['score', 'Scored'], ['about', 'About you']].map(([k, l]) => `<button class="${(q.kind === 'about' ? 'about' : 'score') === k ? 'on' : ''}" data-kind="${k}">${l}</button>`).join('')}</div>
+          <small class="sb-hint">${isAboutQ(q) ? 'Unscored. Their answer is saved on the lead and read back on their result ("Here\'s what you told us").' : 'An everyday behaviour that counts towards the score.'}</small></div>
+        <div class="sb-group"><div class="sb-gt">Answer format</div>
+          <div class="sb-seg">${(isAboutQ(q) ? [['choice', 'Choice'], ['text', 'Open box']] : [['yesno', 'Yes / No'], ['scale', '1–5 scale'], ['choice', 'Choice']]).map(([k, l]) => `<button class="${(q.format || 'choice') === k ? 'on' : ''}" data-format="${k}">${l}</button>`).join('')}</div></div>
+        ${isAboutQ(q) ? `<div class="sb-group"><div class="sb-gt">What it asks about</div><select class="sb-in" id="q-aboutkey">${[['situation', 'Their situation now'], ['goal', 'Their goal (next 90 days)'], ['obstacle', 'Their main obstacle'], ['help', 'How they like to be helped'], ['note', 'Anything else (open note)'], ['other', 'Something else']].map(([k, l]) => `<option value="${k}" ${(q.aboutKey || 'other') === k ? 'selected' : ''}>${l}</option>`).join('')}</select><small class="sb-hint">Labels the answer on their result and in your leads.</small></div>` : ''}
+        ${(() => { const notes = SieveQ.coach(q, { cats: on.map(c => c.key) }); return notes.length ? `<div class="sb-group sb-coach"><div class="sb-gt">${svg(I.wand)}Question coach</div>${notes.map(n => `<div class="sb-cn ${n.level}">${esc(n.text)}</div>`).join('')}</div>` : ''; })()}
+        ${isAboutQ(q) ? '' : `<div class="sb-group"><div class="sb-gt">Scores towards</div>
           <div class="sb-chips">${state.categories.map(c => { const isOn = on.some(x => x.key === c.key); return `<button class="sb-chip tog ${isOn ? 'on' : ''}" data-tcat="${c.key}" style="--c:${catColor(c.key)}">${isOn ? '✓ ' : '+ '}${esc(c.label)}</button>`; }).join('')}</div>
-          <small class="sb-hint">Pick the categories this question tells you about.</small></div>
-        ${on.length ? `<div class="sb-group"><div class="sb-gt-row"><div class="sb-gt">Points per answer</div><div class="sb-fill"><button data-fill="desc" title="First answer best">Best → worst</button><button data-fill="asc" title="Last answer best">Worst → best</button></div></div>
+          <small class="sb-hint">Pick the categories this question tells you about.</small></div>`}
+        ${isGenQ(q) ? `<div class="sb-group"><div class="sb-gt-row"><div class="sb-gt">Points</div><b class="sb-ptsval">${q.points > 0 ? '+' : ''}${q.points}</b></div>
+          <input type="range" min="-5" max="5" step="1" value="${q.points}" id="q-points" class="sb-range" />
+          <small class="sb-hint">How much this matters, 1 to 5. Negative means "yes" is a red flag and costs points.</small>
+          <label class="sb-checkrow"><input type="checkbox" id="q-reverse" ${q.reverse ? 'checked' : ''}/> <span><b>Reverse scored</b><small>${q.format === 'scale' ? 'Agreeing' : 'Saying yes'} is the weaker answer, so the "right" answer isn't obvious.</small></span></label>
+          ${q.format === 'yesno' ? `<label class="sb-checkrow"><input type="checkbox" id="q-help" ${q.helpOption ? 'checked' : ''}/> <span><b>Add "I'd like help with this"</b><small>Scores like "not yet", and flags the topic on the lead and their result.</small></span></label>` : ''}
+        </div>` : isAboutQ(q) ? '' : on.length ? `<div class="sb-group"><div class="sb-gt-row"><div class="sb-gt">Points per answer</div><div class="sb-fill"><button data-fill="desc" title="First answer best">Best → worst</button><button data-fill="asc" title="Last answer best">Worst → best</button></div></div>
           <div class="sb-matrix" style="--n:${on.length}">
             <div class="sb-mrow head"><span></span>${on.map(c => `<span title="${esc(c.label)}"><i style="background:${catColor(c.key)}"></i>${esc(c.label)}</span>`).join('')}</div>
             ${q.options.map((o, oi) => `<div class="sb-mrow"><span class="sb-mlabel"><b>${LETTERS[oi]}</b><em data-mirror="o:${qi}:${oi}">${esc(o.label) || 'Answer ' + LETTERS[oi]}</em></span>${on.map(c => { const v = Number(o.score[c.key] || 0); return `<span class="sb-step"><button data-st="${oi}:${c.key}:-1" aria-label="Less">−</button><input type="number" min="0" max="10" value="${v}" data-pts="${oi}:${c.key}" aria-label="Points for ${LETTERS[oi]} in ${esc(c.label)}" /><button data-st="${oi}:${c.key}:1" aria-label="More">+</button></span>`; }).join('')}</div>`).join('')}
           </div><small class="sb-hint">0 to 10. Higher means a better answer for that category.</small></div>` : `<div class="sb-callout">Pick at least one category above so this question counts towards the score.</div>`}
-        <div class="sb-group"><div class="sb-gt">Answer tips <span class="sb-opt">Optional</span></div><small class="sb-hint" style="margin-bottom:8px">Sieve writes a tip for each answer. Add your own to override it.</small>
+        ${isAboutQ(q) ? '' : `<div class="sb-group"><div class="sb-gt">Answer tips <span class="sb-opt">Optional</span></div><small class="sb-hint" style="margin-bottom:8px">Sieve writes a tip for each answer. Add your own to override it.</small>
           ${q.options.map((o, oi) => { const k = qi + ':' + oi, open = openTips.has(k) || (o.insight && o.insight.trim());
-            return open ? `<label class="sb-f"><span>${LETTERS[oi]}. ${esc(o.label || 'Answer')}</span><textarea rows="2" class="sb-in" data-tip="${oi}" placeholder="What should someone who picks this read?">${esc(o.insight || '')}</textarea></label>` : `<button class="sb-link small" data-opentip="${k}">+ Tip for ${LETTERS[oi]}. ${esc((o.label || 'Answer').slice(0, 30))}</button>`; }).join('')}</div>
+            return open ? `<label class="sb-f"><span>${LETTERS[oi]}. ${esc(o.label || 'Answer')}</span><textarea rows="2" class="sb-in" data-tip="${oi}" placeholder="What should someone who picks this read?">${esc(o.insight || '')}</textarea></label>` : `<button class="sb-link small" data-opentip="${k}">+ Tip for ${LETTERS[oi]}. ${esc((o.label || 'Answer').slice(0, 30))}</button>`; }).join('')}</div>`}
       </div>`;
+    $$('[data-kind]', p).forEach(b => b.onclick = () => {
+      const k = b.dataset.kind; if ((q.kind === 'about' ? 'about' : 'score') === k) return;
+      if (k === 'about') { q.kind = 'about'; q.aboutKey = q.aboutKey || 'other'; q.format = 'choice'; q.options.forEach(o => { o.score = {}; delete o.help; }); delete q.cats; }
+      else { q.kind = 'score'; q.format = 'yesno'; q.points = 3; q.helpOption = true; q.cats = state.categories.slice(0, 1).map(c => c.key); activeCats[qi] = new Set(q.cats); q.options = SieveQ.buildOptions(q); }
+      changed(); drawAll();
+    });
+    $$('[data-format]', p).forEach(b => b.onclick = () => {
+      const fm = b.dataset.format; if ((q.format || 'choice') === fm) return;
+      const cats = on.map(c => c.key);
+      q.format = fm;
+      if (fm === 'text') q.options = [];
+      else if (isAboutQ(q)) { if (!q.options.length) q.options = ['Option A', 'Option B', 'Option C'].map(label => ({ label, score: {} })); }
+      else if (isGenQ(q)) { q.cats = cats.length ? cats : state.categories.slice(0, 1).map(c => c.key); q.points = q.points || 3; q.options = SieveQ.buildOptions(q); }
+      else q.options.forEach(o => { delete o.help; });
+      changed(); drawAll();
+    });
+    const ak = $('#q-aboutkey', p); if (ak) ak.onchange = () => { q.aboutKey = ak.value; changed(); };
+    const qp = $('#q-points', p); if (qp) {
+      qp.oninput = () => { let v = Number(qp.value); if (v === 0) { v = q.points > 0 ? -1 : 1; qp.value = v; } q.points = v; $('.sb-ptsval', p).textContent = (v > 0 ? '+' : '') + v; };
+      qp.onchange = () => { regen(qi); changed(); drawCanvas(); drawSub(); };
+    }
+    const qr = $('#q-reverse', p); if (qr) qr.onchange = () => { q.reverse = qr.checked; regen(qi); changed(); drawCanvas(); };
+    const qh = $('#q-help', p); if (qh) qh.onchange = () => { q.helpOption = qh.checked; regen(qi); changed(); drawCanvas(); drawPanel(); };
     const set = (oi, key, v) => { q.options[oi].score[key] = Math.max(0, Math.min(10, Math.round(Number(v) || 0))); changed(); };
     $$('[data-pts]', p).forEach(inp => inp.onchange = () => { const [oi, key] = inp.dataset.pts.split(':'); set(+oi, key, inp.value); inp.value = q.options[+oi].score[key]; drawCanvas(); drawSub(); });
     $$('[data-st]', p).forEach(b => b.onclick = () => { const [oi, key, d] = b.dataset.st.split(':'); set(+oi, key, Number(q.options[+oi].score[key] || 0) + Number(d)); const inp = b.parentElement.querySelector('input'); inp.value = q.options[+oi].score[key]; drawCanvas(); drawSub(); });
     $$('[data-fill]', p).forEach(b => b.onclick = () => { const n = q.options.length; q.options.forEach((o, oi) => { const r = n > 1 ? (b.dataset.fill === 'desc' ? (n - 1 - oi) / (n - 1) : oi / (n - 1)) : 1; on.forEach(c => { o.score[c.key] = Math.round(r * 10); }); }); changed(); drawAll(); showToast('Points filled in', 'success'); });
     $$('[data-tcat]', p).forEach(b => b.onclick = () => {
       const key = b.dataset.tcat, isOn = on.some(x => x.key === key);
+      if (isGenQ(q)) { const set = new Set(on.map(c => c.key)); if (isOn) { if (set.size <= 1) return showToast('A scored question needs at least one category.'); set.delete(key); } else set.add(key); q.cats = [...set]; activeCats[qi] = new Set(q.cats); q.options = SieveQ.buildOptions(q); changed(); drawAll(); return; }
       activeCats[qi] = new Set(activeCats[qi] || []);
       if (isOn) { q.options.forEach(o => { o.score[key] = 0; }); activeCats[qi].delete(key); }
       else { activeCats[qi].add(key); const n = q.options.length; q.options.forEach((o, oi) => { o.score[key] = n > 1 ? Math.round(((n - 1 - oi) / (n - 1)) * 10) : 10; }); }
@@ -374,6 +421,7 @@
           ${field('Button text', `<input id="t-btn" class="sb-in" value="${esc(t.recommendationLabel || '')}" placeholder="Book Now" />`)}
           <div class="sb-chips">${['Book a free call', 'Chat on WhatsApp', 'See our packages', 'Get a quote'].map(x => `<button class="sb-chip" data-btnq="${esc(x)}">${esc(x)}</button>`).join('')}</div>
         </div>
+        ${field('Typical signs <span class="sb-opt">Optional</span>', `<textarea id="t-signs" rows="4" class="sb-in" placeholder="One per line, e.g. You often hear about problems from customers first">${esc((t.signs || []).join('\n'))}</textarea>`, 'Things people in this tier will recognise about themselves. Shown on their result under "Sound familiar?".')}
         <div class="sb-callout soft">The headline, message and line above the button are edited right on the page. Leave any blank and Sieve writes it for each lead.</div>
       </div>`;
     $('#t-label').oninput = (e) => { t.label = e.target.value; changed(); };
@@ -388,6 +436,7 @@
     };
     $('#t-url').onchange = (e) => { let v = e.target.value.trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; t.recommendationUrl = v; e.target.value = v; changed(); drawSub(); drawCanvas(); };
     $('#t-btn').oninput = (e) => { t.recommendationLabel = e.target.value; changed(); };
+    $('#t-signs').oninput = (e) => { t.signs = e.target.value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 6); changed(); };
     $('#t-btn').onchange = () => drawCanvas();
     $$('[data-btnq]', p).forEach(b => b.onclick = () => { t.recommendationLabel = b.dataset.btnq; $('#t-btn').value = b.dataset.btnq; changed(); drawCanvas(); });
     const dt = $('[data-deltier]', p); if (dt) dt.onclick = async () => {
@@ -411,10 +460,11 @@
   }
   function addQuestion() {
     const score = {}; state.categories.forEach(c => { score[c.key] = 0; });
-    state.questions.push({ text: '', options: ['Option A', 'Option B', 'Option C'].map(label => ({ label, score: { ...score } })) });
+    const cat0 = state.categories.slice(0, 1).map(c => c.key);
+    state.questions.push({ text: '', kind: 'score', format: 'yesno', points: 3, cats: cat0, helpOption: true, options: [] });
     const qi = state.questions.length - 1;
-    activeCats[qi] = new Set(state.categories.slice(0, 1).map(c => c.key));
-    state.questions[qi].options.forEach((o, oi) => { state.categories.slice(0, 1).forEach(c => { o.score[c.key] = [10, 5, 0][oi]; }); });
+    activeCats[qi] = new Set(cat0);
+    state.questions[qi].options = SieveQ.buildOptions(state.questions[qi]);
     AREA = 'questions'; SEL = { type: 'q', i: qi }; drawAll();
     setTimeout(() => { const t = $(`[data-edit="q:${qi}"]`); t && t.focus(); }, 30);
   }
@@ -459,8 +509,8 @@
     return [
       ['Give it a title', !!state.title.trim(), 'landing'],
       ['Write a short intro', !!(state.intro || '').trim(), 'landing'],
-      ['Every question has text and 2+ answers', state.questions.length > 0 && state.questions.every(q => q.text.trim() && q.options.length >= 2 && q.options.every(o => o.label.trim())), 'questions'],
-      ['Every question scores towards a category', state.questions.every((q, i) => qCats(i).length > 0), 'questions'],
+      ['Every question has text and 2+ answers', state.questions.length > 0 && state.questions.every(qValid), 'questions'],
+      ['Every scored question scores towards a category', state.questions.some(q => !isAboutQ(q)) && state.questions.every((q, i) => isAboutQ(q) || qCats(i).length > 0), 'questions'],
       ['A button for your top tier', !!sortedTiers()[0]?.t.recommendationUrl, 'results', true],
     ];
   }

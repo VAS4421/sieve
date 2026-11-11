@@ -260,3 +260,74 @@ body.is-result .demo-topbar { padding: 6px 0 14px; }
   .rx-goal em { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { .rx-bar i, .rx-track-fill, .rx-sticky, .rx-btn { transition: none; } .rx-spinner { animation-duration: 2s; } }
+
+/* ---------- Question engine formats (yes/no, 1–5 scale, open box, about-you) ---------- */
+.demo-opt.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.tk-yesno .demo-opt { text-align: center; font-size: 16px; padding: 18px 22px; }
+.tk-yesno .demo-opt.tk-help {
+  background: transparent; border-style: dashed; color: var(--accent-ink); font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.tk-yesno .demo-opt.tk-help:hover { background: var(--accent-soft); border-style: solid; }
+.demo-answers .demo-opt.tk-help { display: flex; align-items: center; gap: 8px; }
+.tk-help-ic { font-size: 17px; line-height: 1; }
+.tk-hint { text-align: center; color: var(--ink-soft); font-size: 14px; margin: -16px 0 22px; }
+.tk-scale { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.tk-scale-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 6px; text-align: center; }
+.tk-scale-btn b { font-family: var(--font-display); font-size: 22px; line-height: 1; color: var(--ink); }
+.tk-scale-btn span { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); line-height: 1.25; }
+.tk-scale-btn:nth-child(1) b, .tk-scale-btn:nth-child(2) b { color: #B3261E; }
+.tk-scale-btn:nth-child(3) b { color: var(--ink-faint); }
+.tk-scale-btn:nth-child(4) b, .tk-scale-btn:nth-child(5) b { color: #16825D; }
+.tk-scale-ends { display: none; justify-content: space-between; margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--ink-faint); }
+.tk-text {
+  width: 100%; padding: 14px 16px; border-radius: var(--radius-sm); border: 1.5px solid var(--line);
+  font-family: var(--font-body); font-size: 15px; resize: vertical; min-height: 110px; background: var(--surface); color: var(--ink);
+}
+.tk-text:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.tk-text-actions { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-top: 14px; }
+.tk-skip { background: none; border: 0; color: var(--ink-faint); font-weight: 700; cursor: pointer; font-size: 14px; }
+.tk-about-note {
+  display: flex; flex-direction: column; gap: 4px; text-align: center; margin: 0 auto 22px; max-width: 460px;
+  padding: 14px 18px; border-radius: var(--radius-md); background: var(--good-soft); color: #0B5E43;
+}
+.tk-about-note b { font-size: 14.5px; }
+.tk-about-note span { font-size: 13.5px; }
+.tk-about-chip {
+  align-self: center; margin-bottom: 14px; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  padding: 6px 12px; border-radius: 999px; background: var(--good-soft); color: #0B5E43;
+}
+@media (max-width: 560px) {
+  .demo-body { padding: 28px 18px; }
+  .tk-scale { gap: 6px; }
+  .tk-scale-btn { padding: 14px 2px; }
+  .tk-scale-btn span { display: none; }
+  .tk-scale-ends { display: flex; }
+}
+
+/* ---------- Result: typical signs, "what you told us", help answers ---------- */
+.rx-signs-list { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+.rx-signs-list li {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); font-size: 15px; line-height: 1.5;
+}
+.rx-signs-list li i { flex: 0 0 10px; height: 10px; margin-top: 7px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.rx-told-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 18px; }
+.rx-told-card {
+  padding: 16px 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
+}
+.rx-told-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent); }
+.rx-told-card.k-goal::before { background: #16825D; }
+.rx-told-card.k-obstacle::before { background: #B3720C; }
+.rx-told-card.k-help::before { background: var(--accent-2); }
+.rx-told-card span { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
+.rx-told-card p { margin: 6px 0 0; font-size: 15.5px; font-weight: 600; color: var(--ink); line-height: 1.45; overflow-wrap: anywhere; }
+.rx-told-help {
+  margin-top: 14px; padding: 18px 20px; border-radius: 16px; border: 1.5px dashed var(--accent);
+  background: var(--accent-soft); color: var(--accent-ink);
+}
+.rx-told-help b { font-size: 15px; }
+.rx-told-help ul { margin: 10px 0 8px; padding-left: 20px; display: grid; gap: 6px; font-size: 14.5px; color: var(--ink); }
+.rx-told-help p { margin: 0; font-size: 13.5px; font-weight: 600; }
+.rx-quote.help { border-color: var(--accent); background: linear-gradient(180deg, var(--accent-soft), var(--surface)); }

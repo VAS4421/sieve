@@ -3,6 +3,12 @@
 // creating/editing/deleting a template is admin-only, see routes/admin.js.
 const express = require('express');
 const { get, all } = require('../db');
+const { TEMPLATES, BY_SLUG } = require('../template-library');
+const { CATEGORY_LABELS } = require('../template-library/sectors');
+
+// The code library (template-library/) wins over a DB row with the same slug,
+// so templates are upgraded and added by deploy, never by editing the database.
+const card = (t) => ({ slug: t.slug, title: t.title, description: t.description, filterCategory: t.filterCategory, coverImage: t.coverImage });
 
 const router = express.Router();
 
@@ -16,15 +22,11 @@ router.get('/', async (req, res, next) => {
       `SELECT slug, title, description, filter_category, cover_image
        FROM templates WHERE published = 1 ORDER BY sort_order ASC, title ASC`
     );
-    res.json({
-      templates: rows.map(r => ({
-        slug: r.slug,
-        title: r.title,
-        description: r.description,
-        filterCategory: r.filter_category,
-        coverImage: r.cover_image,
-      })),
-    });
+    const fromDb = rows.filter(r => !BY_SLUG.has(r.slug)).map(r => ({
+      slug: r.slug, title: r.title, description: r.description, filterCategory: r.filter_category, coverImage: r.cover_image,
+    }));
+    const lib = [...TEMPLATES].sort((a, b) => a.sortOrder - b.sortOrder).map(card);
+    res.json({ templates: [...lib, ...fromDb], categoryLabels: CATEGORY_LABELS });
   } catch (err) {
     next(err);
   }
@@ -35,6 +37,10 @@ router.get('/', async (req, res, next) => {
 // window.SIEVE_TEMPLATES global.
 router.get('/:slug', async (req, res, next) => {
   try {
+    const t = BY_SLUG.get(req.params.slug);
+    if (t) {
+      return res.json({ template: { slug: t.slug, title: t.title, coverImage: t.coverImage, intro: t.intro, categories: t.categories, questions: t.questions, tiers: t.tiers, ctaLabel: t.ctaLabel } });
+    }
     const row = await get(
       `SELECT slug, title, cover_image, intro, categories, questions, tiers, cta_label
        FROM templates WHERE slug = ? AND published = 1`,
