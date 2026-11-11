@@ -107,6 +107,8 @@
     return v.replace(/^(https?:\/\/)www\./i, '$1www.').replace(/^HTTPS?:\/\//, m => m.toLowerCase());
   };
   const validLink = (v) => { try { const u = new URL(v); return /^https?:$/.test(u.protocol) && u.hostname.includes('.') && !/["'<>\s]/.test(v); } catch { return false; } };
+  // re-checks the title as it is typed (Landing panel)
+  function refreshTitleCoach() { const box = document.getElementById('title-coach'); if (!box) return; box.querySelectorAll('.sb-cn').forEach(n => n.remove()); SieveQ.titleCoach(state.title).forEach(n => { const d = document.createElement('div'); d.className = 'sb-cn ' + n.level; d.textContent = n.text; box.appendChild(d); }); }
   const tiersWithoutButton = () => RES().ctaUrl ? [] : state.tiers.filter(t => !(t.recommendationUrl || '').trim());
   const isAboutQ = (q) => q && q.kind === 'about';
   const isTextQ = (q) => isAboutQ(q) && q.format === 'text';
@@ -326,7 +328,7 @@
   }
   function setField(key, v) {
     const [k, a, b] = key.split(':');
-    if (k === 'title') { state.title = v; $('#top-title').value = v; }
+    if (k === 'title') { state.title = v; $('#top-title').value = v; refreshTitleCoach(); }
     else if (k === 'intro') state.intro = v;
     else if (k === 'brand') state.brandName = v;
     else if (k === 'q') { state.questions[+a].text = v; const o = $(`[data-oq="${a}"] .sb-ot`); if (o) o.textContent = v || 'New question'; clearTimeout(window.__coachT); window.__coachT = setTimeout(() => { if (AREA === 'questions' && SEL.type === 'q' && SEL.i === +a) drawPanel(); }, 700); }
@@ -366,8 +368,16 @@
             <div class="sb-seg">${[['required', 'Required'], ['optional', 'Optional'], ['off', 'Don\'t ask']].map(([k, l]) => `<button class="${LC().phone === k ? 'on' : ''}" data-lcphone="${k}">${l}</button>`).join('')}</div>
             ${LC().position === 'end' ? `${field('Form headline <span class="sb-opt">Optional</span>', `<input id="lc-head" class="sb-in" maxlength="120" value="${esc(LC().headline)}" placeholder="Where should we send your result?" />`)}${field('Line under it <span class="sb-opt">Optional</span>', `<input id="lc-note" class="sb-in" maxlength="200" value="${esc(LC().note)}" placeholder="Your score and personal report show on the next screen." />`)}` : ''}
           </div>
-          <div class="sb-group"><div class="sb-gt">Tips</div><ul class="sb-tips"><li>Ask a question in the title: "How ready is your business to grow?"</li><li>Promise a result and a time: "Get your score in 2 minutes."</li></ul></div>
+          <div class="sb-group sb-coach" id="title-coach"><div class="sb-gt">${svg(I.wand)}Title check</div>${SieveQ.titleCoach(state.title).map(n => `<div class="sb-cn ${n.level}">${esc(n.text)}</div>`).join('')}</div>
+          <div class="sb-group"><div class="sb-gt">Title shapes that work</div>
+            <div class="sb-shapes">${SieveQ.TITLE_SHAPES.map(s => `<button class="sb-shape" data-tshape="${s.key}"><b>${esc(s.label)}</b><small>${esc(s.why)}</small></button>`).join('')}</div>
+            <small class="sb-hint">Tap one to start your title from it, then fill in the gap.</small></div>
         </div>`;
+      $$('[data-tshape]', p).forEach(b => b.onclick = () => {
+        const s = SieveQ.TITLE_SHAPES.find(x => x.key === b.dataset.tshape);
+        state.title = s.text; $('#top-title').value = s.text; changed(); drawCanvas(); drawPanel();
+        setTimeout(() => { const el = $('[data-edit="title"]'); if (el) { el.focus(); const r = document.createRange(); const i = s.text.indexOf('…'); const node = el.firstChild; if (node && i > -1) { r.setStart(node, i); r.setEnd(node, i + 1); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } } }, 40);
+      });
       $$('[data-bullet]', p).forEach(inp => inp.oninput = () => { const L = LAND(); L.bullets[+inp.dataset.bullet] = inp.value; changed(); clearTimeout(window.__landT); window.__landT = setTimeout(drawCanvas, 300); });
       [['l-aud', 'audience'], ['l-btn', 'button'], ['l-trust', 'trust']].forEach(([id, k]) => { $('#' + id).oninput = (e) => { LAND()[k] = e.target.value; changed(); clearTimeout(window.__landT); window.__landT = setTimeout(drawCanvas, 300); }; });
       $$('[data-lcpos]', p).forEach(b => b.onclick = () => { LC().position = b.dataset.lcpos; changed(); drawAll(); });
@@ -704,7 +714,7 @@
   }
 
   /* ---------- top bar ---------- */
-  $('#top-title').oninput = (e) => { state.title = e.target.value; changed(); };
+  $('#top-title').oninput = (e) => { state.title = e.target.value; changed(); refreshTitleCoach(); };
   $('#publish-top').onclick = () => go('share');
   $('#preview-btn').onclick = async () => { const win = window.open('', '_blank'); await save(); if (win) win.location.href = `/take/index.html?slug=${state.slug}&preview=1`; };
   window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (AREAS.some(a => a.key === k) && k !== AREA) go(k); });

@@ -23,6 +23,7 @@
 
 const { buildOptions } = require('../questions');
 const { SECTOR_ABOUT, DEFAULT_ABOUT, HELP_OPTIONS } = require('./sectors');
+const TITLES = require('./titles');
 
 function parseQ(str) {
   const at = str.indexOf('@');
@@ -69,15 +70,24 @@ function build(t, i) {
   const mixed = [];
   for (let r = 0; byCat.some(b => b[r]); r += 1) byCat.forEach(b => { if (b[r]) mixed.push(b[r]); });
 
+  // Title = the customer-facing question (titles.js); intro = the promise line,
+  // built from the quiz itself so the numbers and areas are always right.
+  const named = TITLES[t.slug];
+  const scoredCount = questions.length;
+  const labels = categories.map(c => c.label.toLowerCase());
+  const areaList = labels.length < 2 ? labels[0] : `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+  const promise = `Answer ${scoredCount} quick questions to see how you score on ${areaList}, and get your first steps to improve.`;
+
   const mins = [70, 40, 0];
   const tiers = t.tiers.map(([label, signs], ti) => ({ min: mins[ti] ?? 0, label, signs }));
   return {
     slug: t.slug,
-    title: t.title,
+    title: named ? named[1] : t.title,
+    titleShape: named ? named[0] : '',
     description: t.desc,
     filterCategory: t.cat,
     coverImage: `/covers/${t.slug}.svg`,
-    intro: t.intro,
+    intro: named ? promise : t.intro,
     categories,
     questions: [...mixed, ...aboutQuestions(t)],
     tiers,

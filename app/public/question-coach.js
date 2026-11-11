@@ -77,5 +77,30 @@
     return notes;
   }
 
-  window.SieveQ = { DEFAULT_YES, DEFAULT_NO, DEFAULT_HELP, SCALE_LABELS, clampPoints, buildOptions, coach };
+  // ---- title coach: the scorecard title is the customer's hook -------------
+  // A question about themselves, second person, plain words, ~10 words,
+  // never what the business calls its tool.
+  const TITLE_SHAPES = [
+    { key: 'ready', label: 'Are you ready to…?', text: 'Are you ready to …?', why: 'For something they want to start: buy, launch, grow, hire.' },
+    { key: 'strength', label: 'How healthy is your…?', text: 'How healthy is your …?', why: 'For a check-up on something they already have.' },
+    { key: 'pain', label: 'Is … costing you…?', text: 'Is … costing you customers?', why: 'For a problem they feel but have not measured.' },
+    { key: 'decision', label: 'Should you…?', text: 'Should you …?', why: 'For a decision they are weighing up.' },
+    { key: 'type', label: 'Which … fits you?', text: 'Which … fits you?', why: 'For matching them to the right option or package.' },
+  ];
+  function titleCoach(title) {
+    const t = String(title || '').trim();
+    const notes = [];
+    if (!t) return [{ level: 'info', text: 'Write the title as a question your customer wants answered about themselves.' }];
+    if (/\b(qualifier|pre-?screening|pre-?qualification|needs (audit|analysis)|interest form|lead|funnel|triage|intake)\b/i.test(t)) {
+      notes.push({ level: 'warn', text: 'This sounds like what your business calls the tool. Customers click on a question about themselves, e.g. "Are you ready to buy your first home?"' });
+    }
+    if (!/\?\s*$/.test(t)) notes.push({ level: 'info', text: 'Titles that ask a question get more people to start. Try one of the shapes below.' });
+    if (!/\b(you|your|you're)\b/i.test(t)) notes.push({ level: 'info', text: 'Speak to the customer: use "you" or "your".' });
+    const words = t.split(/\s+/).length;
+    if (words > 11) notes.push({ level: 'warn', text: `${words} words is long. Aim for 10 or fewer so it reads at a glance.` });
+    if (!notes.length) notes.push({ level: 'good', text: 'Good: a short question your customer will want answered.' });
+    return notes;
+  }
+
+  window.SieveQ = { DEFAULT_YES, DEFAULT_NO, DEFAULT_HELP, SCALE_LABELS, clampPoints, buildOptions, coach, titleCoach, TITLE_SHAPES };
 })();

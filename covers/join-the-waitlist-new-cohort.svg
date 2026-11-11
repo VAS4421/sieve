@@ -1,18 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
-  <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%" gradientTransform="rotate(66 0.5 0.5)">
-      <stop offset="0%" stop-color="#4a1259"/>
-      <stop offset="100%" stop-color="#c51b5e"/>
-    </linearGradient>
-  </defs>
+  <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3e0a2e"/><stop offset="100%" stop-color="#d4458f"/></linearGradient></defs>
   <rect width="640" height="360" fill="url(#g)"/>
-  <circle cx="560" cy="60" r="140" fill="#ffffff" opacity="0.06"/>
-  <circle cx="600" cy="300" r="90" fill="#ffffff" opacity="0.05"/>
-  <g transform="translate(470,40) scale(3.2)" opacity="0.16">
-    <path d="M12 2l3.1 6.3 7 1-5 4.9 1.2 6.9L12 17.8 5.7 21.1 6.9 14.2 1.9 9.3l7-1z" fill="none" stroke="#ffffff" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
+  <circle cx="560" cy="60" r="140" fill="#ffffff" opacity="0.06"/><circle cx="600" cy="300" r="90" fill="#ffffff" opacity="0.05"/>
   <rect x="36" y="36" width="130" height="28" rx="14" fill="#ffffff" opacity="0.16"/>
   <text x="101" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="0.06em" fill="#ffffff">SIEVE SCORECARD</text>
-  <text x="36" y="233" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700" fill="#ffffff">Join the Waitlist — New</text>
-    <text x="36" y="267" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700" fill="#ffffff">Cohort</text>
+  <text x="36" y="244" font-family="Georgia, 'Times New Roman', serif" font-size="29" font-weight="700" fill="#ffffff">Are you ready to join the</text>
+  <text x="36" y="280" font-family="Georgia, 'Times New Roman', serif" font-size="29" font-weight="700" fill="#ffffff">next cohort?</text>
 </svg>

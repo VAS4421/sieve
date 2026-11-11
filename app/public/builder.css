@@ -353,3 +353,8 @@ body.no-sub .sb-sub, body.no-panel .sb-panel { padding: 0; border: 0; overflow: 
 .sb-in.sb-bad { border-color: #D64545; background: #FFF5F5; }
 .sb-badmsg { display: block; color: #B3261E; font-size: 12px; font-weight: 600; margin-top: 4px; }
 .sb-badmsg:empty { display: none; }
+.sb-shapes { display: grid; gap: 6px; }
+.sb-shape { text-align: left; border: 1.5px solid var(--line); background: #fff; border-radius: 12px; padding: 9px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; font-family: var(--font-body); }
+.sb-shape:hover { border-color: var(--accent); background: var(--accent-soft); }
+.sb-shape b { font-size: 13.5px; color: var(--ink); }
+.sb-shape small { font-size: 12px; color: var(--ink-faint); }
