@@ -221,8 +221,8 @@ const STRONGEST_PREFIX = [
 function categoryMessage(label, score, role, seed) {
   const band = bandFor(score);
   const base = pick(`${seed}:base`, CATEGORY_BASE[band])(label);
-  if (role === 'weakest') return pick(`${seed}:prefix`, WEAKEST_PREFIX) + base.charAt(0).toLowerCase() + base.slice(1);
-  if (role === 'strongest') return pick(`${seed}:prefix`, STRONGEST_PREFIX) + base.charAt(0).toLowerCase() + base.slice(1);
+  if (role === 'weakest') return pick(`${seed}:prefix`, WEAKEST_PREFIX) + base; // prefixes are full sentences now
+  if (role === 'strongest') return pick(`${seed}:prefix`, STRONGEST_PREFIX) + base;
   return base;
 }
 
