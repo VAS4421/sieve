@@ -343,3 +343,10 @@ body.no-sub .sb-sub, body.no-panel .sb-panel { padding: 0; border: 0; overflow: 
 .sb-whdetails { margin-top: 12px; font-size: 13px; }
 .sb-whdetails summary { cursor: pointer; font-weight: 700; color: var(--ink-soft); }
 .sb-whdetails code { font-size: 12px; background: var(--surface-sunk); padding: 1px 5px; border-radius: 4px; }
+.sb-nextstep { border-radius: 14px; padding: 12px; margin-bottom: 16px; border: 1.5px solid var(--line); background: #fff; }
+.sb-nextstep.warn { border-color: #F2B66B; background: #FFF8EE; }
+.sb-nextstep .sb-sub-head { display: flex; align-items: center; justify-content: space-between; }
+.sb-warnpill, .sb-okpill { font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 999px; }
+.sb-warnpill { background: #FDE3C0; color: #8A4B00; }
+.sb-okpill { background: var(--good-soft); color: #0B5E43; }
+.sb-nobtn { font-style: normal; font-size: 10.5px; font-weight: 800; color: #8A4B00; background: #FDE3C0; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }

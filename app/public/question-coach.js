@@ -54,6 +54,14 @@
     const text = String(q.text || '').trim();
     if (!text) return notes;
     const scored = q.kind !== 'about';
+    // a habit check that was switched to "About you" (often by accident) stops counting towards the score
+    if (!scored && q.format !== 'text') {
+      const labels = (q.options || []).map(o => String(o.label || '').toLowerCase());
+      const yesNo = labels.some(l => /^(yes|that's me|yes, that's me)/.test(l)) && labels.some(l => /^(no|not yet)/.test(l));
+      if (yesNo || /^(do|does|have|has|is there|are there|can) /i.test(text)) {
+        notes.push({ level: 'warn', text: 'This looks like a habit question, but it is set to "About you", so it will not count towards the score. Switch Question type to Scored if that was not on purpose.' });
+      }
+    }
     RULES.forEach(r => { if ((!r.scoredOnly || scored) && r.re.test(text)) notes.push({ level: 'warn', text: r.tip }); });
     if (text.length > 120) notes.push({ level: 'warn', text: 'Long. Aim for one short line people can read at a glance.' });
     if (/\?.*\?/.test(text) || (/\b(and|or)\b/i.test(text) && text.length > 70)) notes.push({ level: 'info', text: 'Might be asking two things at once. Split it if a person could answer "yes" to one half and "no" to the other.' });

@@ -72,7 +72,11 @@ function sanitizeResults(input) {
   const order = Array.isArray(r.order) ? r.order.filter((k, i, a) => RESULT_SECTIONS.includes(k) && a.indexOf(k) === i) : [];
   RESULT_SECTIONS.forEach(k => { if (!order.includes(k)) order.push(k); });
   const hidden = Array.isArray(r.hidden) ? r.hidden.filter((k, i, a) => RESULT_SECTIONS.includes(k) && a.indexOf(k) === i) : [];
-  return { order, hidden };
+  // One next-step button used by every tier that has no button of its own.
+  let ctaUrl = String(r.ctaUrl || '').trim().slice(0, 500);
+  try { const u = new URL(ctaUrl); if (!/^https?:$/.test(u.protocol) || /["'<>\s]/.test(ctaUrl)) ctaUrl = ''; } catch { ctaUrl = ''; }
+  const ctaLabel = String(r.ctaLabel || '').trim().slice(0, 60);
+  return { order, hidden, ctaUrl, ctaLabel };
 }
 
 // Where the lead form sits and what it asks. Stored inside the scorecard's

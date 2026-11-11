@@ -540,8 +540,16 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
 
   const ownerHeadline = tierConfig.headline && tierConfig.headline.trim();
   const ownerMessage = tierConfig.message && tierConfig.message.trim();
-  const recommendationUrl = (tierConfig.recommendationUrl && tierConfig.recommendationUrl.trim()) || '';
-  const recommendationLabel = (tierConfig.recommendationLabel && tierConfig.recommendationLabel.trim()) || 'Book Now';
+  // A tier's own button wins; otherwise the scorecard-wide next-step button
+  // (Results > "Next step button for every tier") is used.
+  let layout = {};
+  try { layout = (JSON.parse(scorecard.profile_capture || '{}') || {}).results || {}; } catch { layout = {}; }
+  const tierUrl = (tierConfig.recommendationUrl && tierConfig.recommendationUrl.trim()) || '';
+  const recommendationUrl = tierUrl || (typeof layout.ctaUrl === 'string' && /^https?:\/\//i.test(layout.ctaUrl) ? layout.ctaUrl.trim() : '');
+  const recommendationLabel = (tierUrl && tierConfig.recommendationLabel && tierConfig.recommendationLabel.trim())
+    || (!tierUrl && typeof layout.ctaLabel === 'string' && layout.ctaLabel.trim())
+    || (tierConfig.recommendationLabel && tierConfig.recommendationLabel.trim())
+    || 'Book Now';
   const ownerRecommendation = tierConfig.recommendation && tierConfig.recommendation.trim();
   // A CTA block only ever shows once the owner has engaged with this
   // feature at all — written their own invitation text, given it a

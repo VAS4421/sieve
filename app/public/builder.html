@@ -99,6 +99,7 @@
     r.order = (r.order || []).filter(k => RES_LABELS[k]); Object.keys(RES_LABELS).forEach(k => { if (!r.order.includes(k)) r.order.push(k); });
     r.hidden ||= []; return r;
   };
+  const tiersWithoutButton = () => RES().ctaUrl ? [] : state.tiers.filter(t => !(t.recommendationUrl || '').trim());
   const isAboutQ = (q) => q && q.kind === 'about';
   const isTextQ = (q) => isAboutQ(q) && q.format === 'text';
   const isGenQ = (q) => q && !isAboutQ(q) && (q.format === 'yesno' || q.format === 'scale');
@@ -170,12 +171,21 @@
       bindOutlineDrag();
     } else if (AREA === 'results') {
       const s = sortedTiers();
+      const R = RES(), missing = tiersWithoutButton();
       el.innerHTML = `
+        <div class="sb-nextstep ${missing.length ? 'warn' : 'ok'}">
+          <div class="sb-sub-head" style="margin:0"><b>Next step button</b>${missing.length ? '<em class="sb-warnpill">Needed</em>' : '<em class="sb-okpill">✓ On</em>'}</div>
+          <p class="sb-hint">${missing.length ? `Without a button link, leads see no next step and no "Your plan" card. ${missing.length === state.tiers.length ? 'No result has a button yet.' : `${missing.length} of ${state.tiers.length} results have no button.`}` : 'Every result shows your next-step button and plan card.'}</p>
+          <input id="cta-url" class="sb-in" type="url" placeholder="https://wa.me/234… or your booking page" value="${esc(R.ctaUrl || '')}" />
+          <input id="cta-label" class="sb-in" style="margin-top:6px" maxlength="60" placeholder="Button text, e.g. Chat on WhatsApp" value="${esc(R.ctaLabel || '')}" />
+          <div class="sb-chips" style="margin-top:6px">${['Chat on WhatsApp', 'Book a free call', 'Get a quote'].map(x => `<button class="sb-chip" data-ctaq="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+          <small class="sb-hint">Used for every result that doesn't have its own button. Open a tier to give it a different one.</small>
+        </div>
         <div class="sb-sub-head"><b>Score tiers</b><span>${state.tiers.length}</span></div>
         <p class="sb-hint">Every lead lands in one tier by their overall score. Each tier gets its own result.</p>
         <div class="sb-tierbar">${s.slice().reverse().map(({ t, i }) => { const w = tierMax(i) - t.min + 1; return `<span style="flex:${Math.max(w, 4)};background:${TIER_COLORS[i % TIER_COLORS.length]}" title="${esc(t.label)}: ${t.min}–${tierMax(i)}%"></span>`; }).join('')}</div>
         <div class="sb-tierscale"><span>0%</span><span>100%</span></div>
-        <div class="sb-tiers">${s.map(({ t, i }) => `<button class="sb-tier ${TIER === i ? 'on' : ''}" data-tier="${i}"><i style="background:${TIER_COLORS[i % TIER_COLORS.length]}"></i><span><b>${esc(t.label)}</b><small>${t.min}–${tierMax(i)}%</small></span>${t.recommendationUrl ? '<em title="Has a button">✓</em>' : ''}</button>`).join('')}</div>
+        <div class="sb-tiers">${s.map(({ t, i }) => `<button class="sb-tier ${TIER === i ? 'on' : ''}" data-tier="${i}"><i style="background:${TIER_COLORS[i % TIER_COLORS.length]}"></i><span><b>${esc(t.label)}</b><small>${t.min}–${tierMax(i)}%</small></span>${t.recommendationUrl ? '<em title="Has its own button">✓</em>' : RES().ctaUrl ? '<em title="Uses your next-step button">✓</em>' : '<em class="sb-nobtn" title="No button: leads see no next step">No button</em>'}</button>`).join('')}</div>
         ${state.tiers.length < 5 ? `<button class="sb-add" id="add-tier">${svg(I.plus)}Add tier</button>` : ''}
         <div class="sb-sub-head" style="margin-top:14px"><b>Page sections</b></div>
         <p class="sb-hint">The score always shows first. Untick to hide; use the arrows to reorder.</p>
@@ -184,6 +194,16 @@
           <button data-secmv="${k}:-1" title="Move up" ${i === 0 ? 'disabled' : ''}>${svg(I.up)}</button><button data-secmv="${k}:1" title="Move down" ${i === arr.length - 1 ? 'disabled' : ''}>${svg(I.down)}</button></div>`).join('')}</div>`;
       $$('[data-secon]', el).forEach(cb => cb.onchange = () => { const r = RES(), k = cb.dataset.secon; r.hidden = cb.checked ? r.hidden.filter(x => x !== k) : [...new Set([...r.hidden, k])]; changed(); drawSub(); });
       $$('[data-secmv]', el).forEach(b => b.onclick = () => { const [k, d] = b.dataset.secmv.split(':'); const o = RES().order, i = o.indexOf(k), j = i + Number(d); if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; changed(); drawSub(); });
+      const cu = $('#cta-url', el), cl = $('#cta-label', el);
+      cu.onchange = () => {
+        let v = cu.value.trim();
+        if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+        R.ctaUrl = v; if (v && !R.ctaLabel) R.ctaLabel = /wa\.me|whatsapp/i.test(v) ? 'Chat on WhatsApp' : 'Book a free call';
+        changed(); drawSub(); drawCanvas(); drawPanel();
+      };
+      cl.oninput = () => { R.ctaLabel = cl.value; changed(); };
+      cl.onchange = () => drawCanvas();
+      $$('[data-ctaq]', el).forEach(b => b.onclick = () => { R.ctaLabel = b.dataset.ctaq; changed(); drawSub(); drawCanvas(); });
       $$('[data-tier]', el).forEach(b => b.onclick = () => { TIER = +b.dataset.tier; SEL = { type: 'tier', i: TIER }; drawSub(); drawCanvas(); drawPanel(); });
       const at = $('#add-tier', el); if (at) at.onclick = addTier;
     } else el.innerHTML = '';
@@ -268,10 +288,10 @@
           ${editable('t-head:' + TIER, t.headline || '', 'Headline (leave blank and Sieve writes it from their score)', 'sb-h2 center')}
           ${editable('t-msg:' + TIER, t.message || '', 'Message (leave blank and Sieve writes a personal one)', 'sb-intro center', true)}
           <div class="sb-catbars">${state.categories.map((cc, ci) => { const v = Math.max(8, Math.min(100, score + (ci % 2 ? -12 : 9) * (ci + 1) / 2)); return `<div><span>${esc(cc.label)}</span><div class="sb-bar"><i style="width:${v}%;background:${catColor(cc.key)}"></i></div></div>`; }).join('')}</div>
-          <div class="sb-cta ${t.recommendationUrl ? '' : 'off'}">
+          <div class="sb-cta ${(t.recommendationUrl || RES().ctaUrl) ? '' : 'off'}">
             ${editable('t-rec:' + TIER, t.recommendation || '', 'Line above the button, e.g. Let\'s talk through your next move.', 'sb-cta-line', true)}
             <span class="sb-cta-btn">${editable('t-btn:' + TIER, t.recommendationLabel || '', 'Book Now', '')}</span>
-            ${t.recommendationUrl ? '' : '<small class="sb-cta-note">Add a button link in the panel to show this to leads</small>'}
+            ${(t.recommendationUrl || RES().ctaUrl) ? '' : '<small class="sb-cta-note">No button yet: add your next-step button link on the left so leads see a next step</small>'}
           </div>
         </div></div>`;
       $$('[data-tt]').forEach(x => x.onclick = () => { TIER = +x.dataset.tt; SEL = { type: 'tier', i: TIER }; drawSub(); drawCanvas(); drawPanel(); });
@@ -459,7 +479,7 @@
       <div class="sb-pb">
         <div class="sb-two">${field('Name', `<input id="t-label" class="sb-in" value="${esc(t.label)}" />`)}${field('Starts at', `<div class="sb-pct"><input id="t-min" type="number" min="0" max="99" class="sb-in" value="${t.min}" ${lowest ? 'disabled' : ''} /><span>%</span></div>`, lowest ? 'The lowest tier always starts at 0%.' : `Up to ${tierMax(TIER)}%`)}</div>
         <div class="sb-group"><div class="sb-gt">Button for this tier</div>
-          ${field('Button link', `<input id="t-url" type="url" class="sb-in" value="${esc(t.recommendationUrl || '')}" placeholder="https://wa.me/234… or your booking page" />`, 'No link means no button for this tier.')}
+          ${field('Button link', `<input id="t-url" type="url" class="sb-in" value="${esc(t.recommendationUrl || '')}" placeholder="${esc(RES().ctaUrl || 'https://wa.me/234… or your booking page')}" />`, RES().ctaUrl ? 'Leave empty to use your next-step button.' : 'No link here and no next-step button means leads in this tier see no next step.')}
           ${field('Button text', `<input id="t-btn" class="sb-in" value="${esc(t.recommendationLabel || '')}" placeholder="Book Now" />`)}
           <div class="sb-chips">${['Book a free call', 'Chat on WhatsApp', 'See our packages', 'Get a quote'].map(x => `<button class="sb-chip" data-btnq="${esc(x)}">${esc(x)}</button>`).join('')}</div>
         </div>
@@ -615,7 +635,7 @@
       ['Write a short intro', !!(state.intro || '').trim(), 'landing'],
       ['Every question has text and 2+ answers', state.questions.length > 0 && state.questions.every(qValid), 'questions'],
       ['Every scored question scores towards a category', state.questions.some(q => !isAboutQ(q)) && state.questions.every((q, i) => isAboutQ(q) || qCats(i).length > 0), 'questions'],
-      ['A button for your top tier', !!sortedTiers()[0]?.t.recommendationUrl, 'results', true],
+      ['Every result has a next-step button', tiersWithoutButton().length === 0, 'results', true],
     ];
   }
   function drawShare(c) {

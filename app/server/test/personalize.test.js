@@ -220,3 +220,20 @@ test('an owner-written answer insight overrides the generated one for that speci
   assert.notEqual(result.answerInsights[1].insight, '');
   assert.ok(result.answerInsights[1].insight.length > 5);
 });
+
+test('a tier without its own button uses the scorecard-wide next-step button', () => {
+  const sc = {
+    title: 'T',
+    categories: JSON.stringify([{ key: 'a', label: 'Fit' }]),
+    questions: JSON.stringify([]),
+    tiers: JSON.stringify([{ min: 70, label: 'High', recommendationUrl: 'https://own.example/book', recommendationLabel: 'Own' }, { min: 0, label: 'Low' }]),
+    profile_capture: JSON.stringify({ results: { ctaUrl: 'https://wa.me/2348000000000', ctaLabel: 'Chat on WhatsApp' } }),
+  };
+  const low = buildPersonalizedResult({ scorecard: sc, lead: { firstName: 'Ada' }, answers: [], categoryScores: { a: 20 }, overall: 20, tierLabel: 'Low', leadId: 'x' });
+  assert.equal(low.recommendationUrl, 'https://wa.me/2348000000000');
+  assert.equal(low.recommendationLabel, 'Chat on WhatsApp');
+  assert.ok(low.recommendation.length > 10);
+  const high = buildPersonalizedResult({ scorecard: sc, lead: { firstName: 'Ada' }, answers: [], categoryScores: { a: 90 }, overall: 90, tierLabel: 'High', leadId: 'x' });
+  assert.equal(high.recommendationUrl, 'https://own.example/book');
+  assert.equal(high.recommendationLabel, 'Own');
+});
