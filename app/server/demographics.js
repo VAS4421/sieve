@@ -38,6 +38,7 @@ function sanitizeProfileCapture(input) {
     landing: sanitizeLanding(pc.landing),
     theme: sanitizeTheme(pc.theme),
     results: sanitizeResults(pc.results),
+    integrations: sanitizeIntegrations(pc.integrations),
   };
 }
 
@@ -52,6 +53,15 @@ function sanitizeTheme(input) {
     font: ['modern', 'classic', 'friendly'].includes(t.font) ? t.font : 'modern',
     corners: ['rounded', 'soft', 'square'].includes(t.corners) ? t.corners : 'rounded',
   };
+}
+
+// Where each new lead is sent. Never sent to the quiz page.
+function sanitizeIntegrations(input) {
+  const i = input && typeof input === 'object' ? input : {};
+  let url = String(i.webhookUrl || '').trim().slice(0, 500);
+  try { const u = new URL(url); if (u.protocol !== 'https:' || u.username || u.password) url = ''; } catch { url = ''; }
+  const secret = /^[a-f0-9]{32,64}$/.test(String(i.webhookSecret || '')) ? String(i.webhookSecret) : '';
+  return { webhookUrl: url, webhookSecret: secret };
 }
 
 // Which result sections show, and in what order. The score reveal always
@@ -102,4 +112,4 @@ function parseProfileCapture(rawJson) {
   return sanitizeProfileCapture(parsed);
 }
 
-module.exports = { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture, sanitizeLeadCapture, sanitizeLanding, sanitizeTheme, sanitizeResults, RESULT_SECTIONS };
+module.exports = { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture, sanitizeLeadCapture, sanitizeLanding, sanitizeTheme, sanitizeResults, sanitizeIntegrations, RESULT_SECTIONS };

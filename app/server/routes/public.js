@@ -9,6 +9,7 @@ const rateLimit = require('../middleware/rateLimit');
 const { newLeadEmail, leadResultsEmail, creditsExhaustedEmail, appUrl } = require('../mailer');
 const { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, parseProfileCapture } = require('../demographics');
 const { chargeCplLead } = require('./billing');
+const { deliver, leadPayload } = require('../webhooks');
 
 const router = express.Router();
 
@@ -241,6 +242,14 @@ router.post('/scorecards/:slug/submit', submitLimiter, async (req, res, next) =>
       [row.user_id]
     );
     const reportUrl = `${appUrl()}/api/public/leads/${id}/report.pdf`;
+
+    // Owner's webhook (Zapier, Make, CRM): fire-and-forget, never blocks the visitor.
+    const { integrations } = parseProfileCapture(row.profile_capture);
+    if (integrations.webhookUrl) {
+      deliver(integrations.webhookUrl, integrations.webhookSecret, leadPayload({
+        scorecard: row, leadId: id, lead, overall, tier, categoryScores, personalization, profile: profileCheck.clean, reportUrl,
+      })).catch(err => console.error('[public] webhook failed:', err.message));
+    }
 
     // Usage-based billing settles right here, on a successful submission — this
     // is the one moment a respondent is confirmed "qualified," which is what

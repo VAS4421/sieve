@@ -211,6 +211,32 @@
           `).join('') || '<p class="chart-empty">No data yet.</p>'}
         </div>
 
+        ${(() => {
+          const ai = r.answerInsights;
+          if (!ai || !r.completed) return '';
+          const ABOUT = [['goal', 'What they want in the next 90 days'], ['obstacle', "What's in their way"], ['help', 'How they want to be helped'], ['situation', 'Where they are now']];
+          const aboutCards = ABOUT.filter(([k]) => (ai.about[k] || []).length).map(([k, t]) => `
+            <div class="insight-section">
+              <span class="insight-kicker" style="background:var(--c-interest-soft);color:var(--c-interest);">In their words</span>
+              <div class="insight-title">${t}</div>
+              ${hbars(ai.about[k], 'var(--c-interest)')}
+            </div>`).join('');
+          return `
+            ${ai.struggles.length ? `<div class="insight-section">
+              <span class="insight-kicker" style="background:var(--c-score-soft);color:var(--c-score);">Where people struggle</span>
+              <div class="insight-title">The habits most people don't have yet</div>
+              <p class="insight-sub">Share of people who didn't give the strongest answer. These are the problems your offer can solve.</p>
+              ${hbars(ai.struggles, 'var(--c-score)')}
+            </div>` : ''}
+            <div class="insight-section">
+              <span class="insight-kicker" style="background:var(--c-cat-soft);color:var(--c-cat);">Hands up</span>
+              <div class="insight-title">${ai.leadsWantingHelp} ${ai.leadsWantingHelp === 1 ? 'person' : 'people'} (${ai.helpRate}%) asked for help</div>
+              <p class="insight-sub">The topics people ticked "I'd like help with this" on. Your warmest leads are on the Leads page, marked ✋.</p>
+              ${ai.helpTopics.length ? hbars(ai.helpTopics, 'var(--c-cat)') : '<p class="chart-empty">No help requests yet.</p>'}
+            </div>
+            ${aboutCards}`;
+        })()}
+
         ${audienceCards.join('')}
 
         ${r.engagementMode ? `

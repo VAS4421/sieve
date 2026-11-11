@@ -340,3 +340,6 @@ body.no-sub .sb-sub, body.no-panel .sb-panel { padding: 0; border: 0; overflow: 
 .sb-sec button:hover:not(:disabled) { background: var(--surface-sunk); }
 .sb-sec button:disabled { opacity: .3; cursor: default; }
 .sb-sec button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.sb-whdetails { margin-top: 12px; font-size: 13px; }
+.sb-whdetails summary { cursor: pointer; font-weight: 700; color: var(--ink-soft); }
+.sb-whdetails code { font-size: 12px; background: var(--surface-sunk); padding: 1px 5px; border-radius: 4px; }

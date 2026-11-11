@@ -90,6 +90,7 @@
   // lead form placement + landing sections, kept inside the profileCapture settings blob
   const LC = () => { const pc = state.profileCapture || (state.profileCapture = {}); return (pc.leadCapture ||= { position: 'start', phone: 'required', headline: '', note: '' }); };
   const LAND = () => { const pc = state.profileCapture || (state.profileCapture = {}); const l = (pc.landing ||= { bullets: [], audience: '', trust: '', button: '' }); l.bullets ||= []; return l; };
+  const INTEG = () => { const pc = state.profileCapture || (state.profileCapture = {}); return (pc.integrations ||= { webhookUrl: '', webhookSecret: '' }); };
   const THEME = () => { const pc = state.profileCapture || (state.profileCapture = {}); return (pc.theme ||= { accent: '', logo: '', font: 'modern', corners: 'rounded' }); };
   const RES_LABELS = { signs: 'Sound familiar? (typical signs)', pair: 'Strength and blind spot', map: 'Score map', gap: 'Your potential', areas: 'Area by area', answers: 'Their answers, with insights', told: 'What they told you', cta: 'Next step (your button)' };
   const RES = () => {
@@ -548,9 +549,36 @@
           </div>
           <div class="sb-theme-prev th-${esc(THEME().font)} th-c-${esc(THEME().corners)}" style="--tc:${esc(THEME().accent || '#3B5BFD')}"><b>${esc(state.title || 'Your scorecard')}</b><span class="o">Yes, that's me</span><span class="o">Not yet</span><span class="b">See my result →</span></div>
         </div></div>
+      <div class="sb-card ${INTEG().webhookUrl ? 'on' : ''}"><div class="sb-card-h"><div><h3>Send leads to other apps</h3><p>Every new lead is sent straight to a web address you choose: Zapier, Make, Google Sheets (through Zapier or Make), your CRM or your own server.</p></div></div>
+        <div class="sb-card-b">
+          ${field('Webhook address', `<input id="wh-url" class="sb-in" type="url" placeholder="https://hooks.zapier.com/hooks/catch/…" value="${esc(INTEG().webhookUrl || '')}" />`, 'Must start with https://. Leave empty to turn it off.')}
+          <div class="sb-row"><button class="sb-btn ghost" id="wh-test" ${INTEG().webhookUrl ? '' : 'disabled'}>Send a test lead</button><span class="sb-hint" id="wh-result"></span></div>
+          ${INTEG().webhookSecret ? `<details class="sb-whdetails"><summary>For developers: signing secret and data format</summary>
+            <p class="sb-hint">Each request has an <code>X-Sieve-Signature</code> header: HMAC-SHA256 of the raw body, using this secret.</p>
+            <div class="sb-copy"><input id="wh-secret" value="${esc(INTEG().webhookSecret)}" readonly /><button class="sb-btn ghost" data-copy="wh-secret">Copy</button></div>
+            <p class="sb-hint">Fields sent: event, scorecard (id, slug, title), lead (name, email, phone, overallScore, tier, categoryScores, aboutYou, helpWanted, profile), reportUrl.</p></details>` : ''}
+        </div></div>
       <div class="sb-card ${state.engagementMode ? 'on' : ''}"><div class="sb-card-h"><div><h3>Engagement campaign</h3><p>Shows leads their completion time and a shareable result, and adds time-spent stats to your report.</p></div><label class="sb-switch"><input type="checkbox" id="eng" ${state.engagementMode ? 'checked' : ''}><span></span></label></div>
         ${state.engagementMode ? `<div class="sb-card-b">${field('Share message <span class="sb-opt">Optional</span>', `<textarea id="share-t" rows="2" class="sb-in" placeholder="I scored {score}% on {title}! Check yours: {link}">${esc(state.shareTemplate || '')}</textarea>`)}<div class="sb-chips">${['{score}', '{title}', '{brand}', '{tier}', '{link}'].map(t => `<button class="sb-chip mono" data-token="${t}">${t}</button>`).join('')}</div></div>` : ''}</div>
     </div>`;
+    const whUrl = $('#wh-url');
+    whUrl.onchange = () => {
+      let v = whUrl.value.trim();
+      if (v && !/^https:\/\//i.test(v)) { showToast('The address must start with https://'); whUrl.value = INTEG().webhookUrl || ''; return; }
+      INTEG().webhookUrl = v; changed();
+      // the server creates the signing secret on save; reload settings to show it
+      setTimeout(async () => { await save(); try { const { scorecard } = await api(`/scorecards/${scorecardId}`); state.profileCapture.integrations = scorecard.profileCapture.integrations; } catch {} drawCanvas(); }, 50);
+    };
+    $('#wh-test').onclick = async () => {
+      const out = $('#wh-result'); out.textContent = 'Sending…';
+      try {
+        await save();
+        const r = await api(`/scorecards/${scorecardId}/webhook-test`, { method: 'POST' });
+        out.textContent = r.ok ? `✓ Delivered (status ${r.status})` : (r.error || `The address answered with status ${r.status}`);
+        out.style.color = r.ok ? 'var(--good)' : '#B3261E';
+      } catch (ex) { out.textContent = ex.message || 'Could not send.'; out.style.color = '#B3261E'; }
+    };
+    $$('[data-copy]', c).forEach(b => b.onclick = async () => { const el = $('#' + b.dataset.copy); try { await navigator.clipboard.writeText(el.value); } catch { el.select(); document.execCommand('copy'); } showToast('Copied', 'success'); });
     const T = THEME();
     $$('[data-color]').forEach(b => b.onclick = () => { T.accent = b.dataset.color; changed(); drawCanvas(); });
     $('#th-color').onchange = (e) => { T.accent = e.target.value.toUpperCase(); changed(); drawCanvas(); };
@@ -603,6 +631,11 @@
     const url = liveUrl(), title = state.title;
     const wa = `Hi! ${title} — take this quick assessment from ${(state.brandName && state.brandName.trim()) || 'us'} and get your results instantly: ${url}`;
     const embed = `<iframe src="${url}&embed=1" style="width:100%;max-width:520px;height:640px;border:0;" title="${title.replace(/"/g, '&quot;')}"></iframe>`;
+    const slugSafe = String(state.slug || '').replace(/[^a-z0-9-]/gi, '');
+    // the closing tag is split so it can't end this page's own <script> block
+    const embedScript = `<script src="${location.origin}/embed.js" async><` + `/script>`;
+    const embedInline = `<div data-sieve="${slugSafe}"></div> ${embedScript}`;
+    const embedPopup = `<button data-sieve-popup="${slugSafe}">Take the quiz</button> ${embedScript}`;
     c.innerHTML = `<div class="sb-doc"><h1>Your scorecard is live 🎉</h1><p class="sb-lead">Share it anywhere. New leads land in your dashboard, already scored.</p>
       <div class="sb-card live"><div class="sb-gt">Your link</div><div class="sb-copy"><input id="share-link" value="${esc(url)}" readonly /><button class="sb-btn primary" data-copy="share-link">Copy</button></div>
         <div class="sb-sharegrid">
@@ -612,7 +645,13 @@
           <a class="sb-share" href="/leads.html?id=${scorecardId}">See leads</a></div></div>
       <div class="sb-twocards"><div class="sb-card"><div class="sb-gt">WhatsApp Status or broadcast</div><textarea id="wa-text" class="sb-in" rows="4" readonly>${esc(wa)}</textarea><button class="sb-btn ghost" data-copy="wa-text">Copy message</button></div>
         <div class="sb-card"><div class="sb-gt">QR code</div><img src="/api/scorecards/${scorecardId}/qr.png" alt="QR code" width="130" height="130" class="sb-qr" /><a class="sb-btn ghost" href="/api/scorecards/${scorecardId}/qr.png" download>Download QR</a></div></div>
-      <details class="sb-card"><summary>Embed on your website</summary><div class="sb-copy" style="margin-top:10px"><input id="embed-code" value="${esc(embed)}" readonly /><button class="sb-btn ghost" data-copy="embed-code">Copy</button></div></details>
+      <details class="sb-card" open><summary>Put it on your website</summary>
+        <p class="sb-hint" style="margin-top:10px"><b>On the page</b>: shows the full scorecard and grows to fit, no scrollbars.</p>
+        <div class="sb-copy"><input id="embed-inline" value="${esc(embedInline)}" readonly /><button class="sb-btn ghost" data-copy="embed-inline">Copy</button></div>
+        <p class="sb-hint" style="margin-top:12px"><b>As a popup button</b>: a button that opens the scorecard over your page. Style the button however you like.</p>
+        <div class="sb-copy"><input id="embed-popup" value="${esc(embedPopup)}" readonly /><button class="sb-btn ghost" data-copy="embed-popup">Copy</button></div>
+        <p class="sb-hint" style="margin-top:12px"><b>Plain iframe</b>: for website builders that don't allow scripts.</p>
+        <div class="sb-copy"><input id="embed-code" value="${esc(embed)}" readonly /><button class="sb-btn ghost" data-copy="embed-code">Copy</button></div></details>
       <div class="sb-unpub"><span>Unpublishing stops new leads until you publish again.</span><button class="sb-link danger" id="unpublish">Unpublish</button></div></div>`;
     $$('[data-copy]').forEach(b => b.onclick = async () => { const el = $('#' + b.dataset.copy); try { await navigator.clipboard.writeText(el.value); } catch { el.select(); document.execCommand('copy'); } showToast('Copied', 'success'); });
     $('#unpublish').onclick = async () => { if (await showConfirm('Unpublish this scorecard? The link stops accepting new leads until you publish again.')) togglePublish(false); };

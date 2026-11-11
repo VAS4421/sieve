@@ -9,6 +9,8 @@ const requireAuth = require('../middleware/requireAuth');
 const { computeScore } = require('../scoring');
 const { buildPersonalizedResult } = require('../personalize');
 const { publicQuestion, validateAnswers, normalizeQuestion, questionError } = require('../questions');
+const { deliver, leadPayload } = require('../webhooks');
+const { buildAnswerInsights } = require('../analytics');
 const { publicProfileCapture, publicPageSettings, resolveBrandName } = require('./public');
 const { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture } = require('../demographics');
 const { appUrl } = require('../mailer');
@@ -170,6 +172,14 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+// A webhook gets its own signing secret the first time a URL is saved.
+function withWebhookSecret(pc) {
+  if (pc.integrations && pc.integrations.webhookUrl && !pc.integrations.webhookSecret) {
+    pc.integrations.webhookSecret = crypto.randomBytes(24).toString('hex');
+  }
+  return pc;
+}
+
 // What a lead told us outside the score, read from their stored result
 // snapshot (so it stays right even if the owner later edits the questions).
 function leadExtras(l) {
@@ -231,7 +241,7 @@ router.put('/:id', async (req, res, next) => {
         JSON.stringify(tiers && tiers.length ? tiers : JSON.parse(row.tiers)),
         (brandName && brandName.trim()) || null,
         (coverImage && coverImage.trim()) || null,
-        JSON.stringify(sanitizeProfileCapture(profileCapture)),
+        JSON.stringify(withWebhookSecret(sanitizeProfileCapture(profileCapture))),
         engagementMode ? 1 : 0,
         (shareTemplate && shareTemplate.trim()) || null,
         row.id,
@@ -265,6 +275,33 @@ router.delete('/:id', async (req, res, next) => {
     await run('DELETE FROM scorecard_starts WHERE scorecard_id = ?', [row.id]);
     await run('DELETE FROM scorecards WHERE id = ?', [row.id]);
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Sends a sample lead to the saved webhook so the owner can check it works.
+router.post('/:id/webhook-test', async (req, res, next) => {
+  try {
+    const row = await ownedScorecardOr404(req, res);
+    if (!row) return;
+    const { integrations } = parseProfileCapture(row.profile_capture);
+    if (!integrations.webhookUrl) return res.status(400).json({ error: 'Add a webhook address and let it save first.' });
+    const categories = JSON.parse(row.categories);
+    const categoryScores = {}; categories.forEach((c, i) => { categoryScores[c.key] = 80 - i * 15; });
+    const payload = leadPayload({
+      scorecard: row, leadId: 'test-' + crypto.randomUUID(), test: true,
+      lead: { firstName: 'Ada', lastName: 'Test', email: 'ada.test@example.com', phone: '08000000000' },
+      overall: 65, tier: (JSON.parse(row.tiers)[1] || {}).label || 'Result', categoryScores,
+      personalization: { aboutYou: [{ key: 'goal', question: 'Goal', answer: 'More customers coming in' }], helpWanted: [{ question: 'A sample question they asked for help with' }] },
+      profile: null, reportUrl: '',
+    });
+    try {
+      const r = await deliver(integrations.webhookUrl, integrations.webhookSecret, payload);
+      res.json({ ok: r.ok, status: r.status });
+    } catch (err) {
+      res.json({ ok: false, error: err.name === 'AbortError' ? 'The address took too long to answer.' : (err.message || 'Could not reach that address.') });
+    }
   } catch (err) {
     next(err);
   }
@@ -388,7 +425,11 @@ router.get('/:id/report', async (req, res, next) => {
       interestQuestion: profileCapture.interestQuestion,
     };
 
+    // Answer-level insight, aggregate only (see analytics.js).
+    const answerInsights = buildAnswerInsights(JSON.parse(row.questions), leads);
+
     res.json({
+      answerInsights,
       started,
       completed,
       // Clamped to 100 — completed can technically exceed started in edge cases

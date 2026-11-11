@@ -12,7 +12,17 @@
     return;
   }
 
-  if (params.get('embed') === '1') document.body.classList.add('is-embed');
+  if (params.get('embed') === '1') {
+    document.body.classList.add('is-embed');
+    // tell the page we're embedded in how tall we are, so its frame can grow (see /embed.js)
+    if (window.parent !== window && 'ResizeObserver' in window) {
+      let last = 0;
+      new ResizeObserver(() => {
+        const h = Math.ceil(document.documentElement.scrollHeight);
+        if (Math.abs(h - last) > 2) { last = h; window.parent.postMessage({ type: 'sieve:height', height: h }, '*'); }
+      }).observe(document.body);
+    }
+  }
 
   // Preview mode — opened from the builder's Preview button so an owner can
   // click through their own scorecard before publishing it. Hits the
