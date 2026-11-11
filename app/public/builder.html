@@ -90,6 +90,14 @@
   // lead form placement + landing sections, kept inside the profileCapture settings blob
   const LC = () => { const pc = state.profileCapture || (state.profileCapture = {}); return (pc.leadCapture ||= { position: 'start', phone: 'required', headline: '', note: '' }); };
   const LAND = () => { const pc = state.profileCapture || (state.profileCapture = {}); const l = (pc.landing ||= { bullets: [], audience: '', trust: '', button: '' }); l.bullets ||= []; return l; };
+  const THEME = () => { const pc = state.profileCapture || (state.profileCapture = {}); return (pc.theme ||= { accent: '', logo: '', font: 'modern', corners: 'rounded' }); };
+  const RES_LABELS = { signs: 'Sound familiar? (typical signs)', pair: 'Strength and blind spot', map: 'Score map', gap: 'Your potential', areas: 'Area by area', answers: 'Their answers, with insights', told: 'What they told you', cta: 'Next step (your button)' };
+  const RES = () => {
+    const pc = state.profileCapture || (state.profileCapture = {});
+    const r = (pc.results ||= { order: [], hidden: [] });
+    r.order = (r.order || []).filter(k => RES_LABELS[k]); Object.keys(RES_LABELS).forEach(k => { if (!r.order.includes(k)) r.order.push(k); });
+    r.hidden ||= []; return r;
+  };
   const isAboutQ = (q) => q && q.kind === 'about';
   const isTextQ = (q) => isAboutQ(q) && q.format === 'text';
   const isGenQ = (q) => q && !isAboutQ(q) && (q.format === 'yesno' || q.format === 'scale');
@@ -167,7 +175,14 @@
         <div class="sb-tierbar">${s.slice().reverse().map(({ t, i }) => { const w = tierMax(i) - t.min + 1; return `<span style="flex:${Math.max(w, 4)};background:${TIER_COLORS[i % TIER_COLORS.length]}" title="${esc(t.label)}: ${t.min}–${tierMax(i)}%"></span>`; }).join('')}</div>
         <div class="sb-tierscale"><span>0%</span><span>100%</span></div>
         <div class="sb-tiers">${s.map(({ t, i }) => `<button class="sb-tier ${TIER === i ? 'on' : ''}" data-tier="${i}"><i style="background:${TIER_COLORS[i % TIER_COLORS.length]}"></i><span><b>${esc(t.label)}</b><small>${t.min}–${tierMax(i)}%</small></span>${t.recommendationUrl ? '<em title="Has a button">✓</em>' : ''}</button>`).join('')}</div>
-        ${state.tiers.length < 5 ? `<button class="sb-add" id="add-tier">${svg(I.plus)}Add tier</button>` : ''}`;
+        ${state.tiers.length < 5 ? `<button class="sb-add" id="add-tier">${svg(I.plus)}Add tier</button>` : ''}
+        <div class="sb-sub-head" style="margin-top:14px"><b>Page sections</b></div>
+        <p class="sb-hint">The score always shows first. Untick to hide; use the arrows to reorder.</p>
+        <div class="sb-secs">${RES().order.map((k, i, arr) => `<div class="sb-sec ${RES().hidden.includes(k) ? 'off' : ''}">
+          <label><input type="checkbox" data-secon="${k}" ${RES().hidden.includes(k) ? '' : 'checked'} /><span>${esc(RES_LABELS[k])}</span></label>
+          <button data-secmv="${k}:-1" title="Move up" ${i === 0 ? 'disabled' : ''}>${svg(I.up)}</button><button data-secmv="${k}:1" title="Move down" ${i === arr.length - 1 ? 'disabled' : ''}>${svg(I.down)}</button></div>`).join('')}</div>`;
+      $$('[data-secon]', el).forEach(cb => cb.onchange = () => { const r = RES(), k = cb.dataset.secon; r.hidden = cb.checked ? r.hidden.filter(x => x !== k) : [...new Set([...r.hidden, k])]; changed(); drawSub(); });
+      $$('[data-secmv]', el).forEach(b => b.onclick = () => { const [k, d] = b.dataset.secmv.split(':'); const o = RES().order, i = o.indexOf(k), j = i + Number(d); if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; changed(); drawSub(); });
       $$('[data-tier]', el).forEach(b => b.onclick = () => { TIER = +b.dataset.tier; SEL = { type: 'tier', i: TIER }; drawSub(); drawCanvas(); drawPanel(); });
       const at = $('#add-tier', el); if (at) at.onclick = addTier;
     } else el.innerHTML = '';
@@ -198,6 +213,8 @@
       : '';
     $$('[data-device]').forEach(b => b.onclick = () => { DEVICE = b.dataset.device; drawCanvas(); });
     c.className = 'sb-canvas ' + (DEVICE === 'mobile' ? 'mobile' : '') + (['settings', 'share'].includes(AREA) ? ' plain' : '');
+    // preview the owner's brand colour on the page being edited
+    if (THEME().accent) { c.style.setProperty('--accent', THEME().accent); c.style.setProperty('--blue', THEME().accent); } else { c.style.removeProperty('--accent'); c.style.removeProperty('--blue'); }
     const b = esc(brand());
     if (AREA === 'landing' || (AREA === 'questions' && SEL.type === 'landing')) {
       const n = state.questions.length;
@@ -515,9 +532,44 @@
         ${pc.enabled ? `<div class="sb-card-b"><div class="sb-gt">What to ask</div><div class="sb-chips">${fields.map(([k, l]) => `<button class="sb-chip tog ${pc[k] ? 'on' : ''}" data-pc="${k}" style="--c:#3B5BFD">${pc[k] ? '✓ ' : '+ '}${l}</button>`).join('')}</div>
           ${field('Interest question <span class="sb-opt">Optional</span>', `<input id="pc-q" class="sb-in" value="${esc(pc.interestQuestion || '')}" placeholder="e.g. Which best describes your interest in [Brand]?" />`)}
           <div class="sb-f"><span>Answer choices</span><div class="sb-tags">${(pc.interestOptions || []).map((t, i) => `<span class="sb-tagx">${esc(t)}<button data-rmtag="${i}">×</button></span>`).join('')}<input id="pc-tag" placeholder="${(pc.interestOptions || []).length ? 'Add another…' : 'Type a choice and press Enter'}" /></div></div></div>` : ''}</div>
+      <div class="sb-card"><div class="sb-card-h"><div><h3>Brand &amp; theme</h3><p>Your colour, logo and style on the quiz and result pages.</p></div><span class="sb-swatch" style="background:${esc(THEME().accent || '#3B5BFD')}"></span></div>
+        <div class="sb-card-b">
+          <div class="sb-gt">Brand colour</div>
+          <div class="sb-colors">${['#3B5BFD', '#0E9F6E', '#E08A0B', '#D6336C', '#7C3AED', '#0F766E', '#B91C1C', '#111827'].map(c => `<button class="sb-color ${THEME().accent === c ? 'on' : ''}" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('')}
+            <label class="sb-color-pick" title="Pick any colour"><input type="color" id="th-color" value="${esc(THEME().accent || '#3B5BFD')}" /><span>Custom</span></label>
+            ${THEME().accent ? '<button class="sb-link small" id="th-reset">Use Sieve blue</button>' : ''}</div>
+          <div class="sb-gt" style="margin-top:14px">Logo</div>
+          <div class="sb-row">${THEME().logo ? `<img src="${esc(THEME().logo)}" alt="" class="sb-logo-prev" />` : ''}<button class="sb-btn ghost" id="th-logo-up">${THEME().logo ? 'Change logo' : 'Upload logo'}</button>${THEME().logo ? '<button class="sb-link danger" id="th-logo-rm">Remove</button>' : ''}</div>
+          <input type="file" id="th-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden />
+          <small class="sb-hint">Shown at the top of your quiz instead of the Sieve logo. A square image works best.</small>
+          <div class="sb-two" style="margin-top:14px">
+            <div><div class="sb-gt">Font style</div><div class="sb-seg">${[['modern', 'Modern'], ['classic', 'Classic'], ['friendly', 'Friendly']].map(([k, l]) => `<button class="${THEME().font === k ? 'on' : ''}" data-font="${k}">${l}</button>`).join('')}</div></div>
+            <div><div class="sb-gt">Corners</div><div class="sb-seg">${[['rounded', 'Round'], ['soft', 'Soft'], ['square', 'Square']].map(([k, l]) => `<button class="${THEME().corners === k ? 'on' : ''}" data-corners="${k}">${l}</button>`).join('')}</div></div>
+          </div>
+          <div class="sb-theme-prev th-${esc(THEME().font)} th-c-${esc(THEME().corners)}" style="--tc:${esc(THEME().accent || '#3B5BFD')}"><b>${esc(state.title || 'Your scorecard')}</b><span class="o">Yes, that's me</span><span class="o">Not yet</span><span class="b">See my result →</span></div>
+        </div></div>
       <div class="sb-card ${state.engagementMode ? 'on' : ''}"><div class="sb-card-h"><div><h3>Engagement campaign</h3><p>Shows leads their completion time and a shareable result, and adds time-spent stats to your report.</p></div><label class="sb-switch"><input type="checkbox" id="eng" ${state.engagementMode ? 'checked' : ''}><span></span></label></div>
         ${state.engagementMode ? `<div class="sb-card-b">${field('Share message <span class="sb-opt">Optional</span>', `<textarea id="share-t" rows="2" class="sb-in" placeholder="I scored {score}% on {title}! Check yours: {link}">${esc(state.shareTemplate || '')}</textarea>`)}<div class="sb-chips">${['{score}', '{title}', '{brand}', '{tier}', '{link}'].map(t => `<button class="sb-chip mono" data-token="${t}">${t}</button>`).join('')}</div></div>` : ''}</div>
     </div>`;
+    const T = THEME();
+    $$('[data-color]').forEach(b => b.onclick = () => { T.accent = b.dataset.color; changed(); drawCanvas(); });
+    $('#th-color').onchange = (e) => { T.accent = e.target.value.toUpperCase(); changed(); drawCanvas(); };
+    const thr = $('#th-reset'); if (thr) thr.onclick = () => { T.accent = ''; changed(); drawCanvas(); };
+    $$('[data-font]').forEach(b => b.onclick = () => { T.font = b.dataset.font; changed(); drawCanvas(); });
+    $$('[data-corners]').forEach(b => b.onclick = () => { T.corners = b.dataset.corners; changed(); drawCanvas(); });
+    $('#th-logo-up').onclick = () => $('#th-logo-file').click();
+    $('#th-logo-file').onchange = async (e) => {
+      const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+      try {
+        showToast('Uploading logo…', 'info');
+        const form = new FormData(); form.append('cover', f);
+        const res = await fetch('/api/scorecards/upload-cover', { method: 'POST', credentials: 'include', body: form });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Upload failed.');
+        T.logo = data.url; changed(); drawCanvas(); showToast('Logo added', 'success');
+      } catch (err) { showToast(err.message || 'Upload failed.'); }
+    };
+    const lrm = $('#th-logo-rm'); if (lrm) lrm.onclick = () => { T.logo = ''; changed(); drawCanvas(); };
     $('#pc-enabled').onchange = (e) => { pc.enabled = e.target.checked; changed(); drawCanvas(); };
     $$('[data-pc]').forEach(b => b.onclick = () => { pc[b.dataset.pc] = !pc[b.dataset.pc]; changed(); drawCanvas(); });
     const q = $('#pc-q'); if (q) q.oninput = (e) => { pc.interestQuestion = e.target.value; changed(); };

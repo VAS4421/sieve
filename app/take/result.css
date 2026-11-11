@@ -351,3 +351,17 @@ body.is-result .demo-topbar { padding: 6px 0 14px; }
 .tk-leadform .demo-gate { max-width: 460px; margin: 0 auto; width: 100%; }
 .tk-land-intro { text-align: center; color: var(--ink-soft); font-size: 14.5px; margin: 0 0 18px; }
 .demo-cover-body .tk-land-intro { color: rgba(255,255,255,.88); }
+
+/* ---------- Owner theme (accent, font, corners) ---------- */
+.tk-own-logo { object-fit: contain; border-radius: 6px; }
+body.tk-themed .rx-btn, body.tk-themed .rx-offer-btn, body.tk-themed .btn-accent { background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 30%, transparent); }
+body.tk-font-classic { --font-display: Georgia, 'Times New Roman', serif; }
+body.tk-font-friendly { --font-display: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif; --font-body: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif; }
+body.tk-corners-soft .demo-frame, body.tk-corners-soft .rx-section, body.tk-corners-soft .rx-hero, body.tk-corners-soft .rx-map,
+body.tk-corners-soft .rx-gapcard, body.tk-corners-soft .rx-offer, body.tk-corners-soft .rx-offer-in { border-radius: 14px; }
+body.tk-corners-soft .demo-opt, body.tk-corners-soft .btn, body.tk-corners-soft .rx-btn, body.tk-corners-soft .rx-offer-btn { border-radius: 10px; }
+body.tk-corners-square .demo-frame, body.tk-corners-square .rx-section, body.tk-corners-square .rx-hero, body.tk-corners-square .rx-map,
+body.tk-corners-square .rx-gapcard, body.tk-corners-square .rx-offer, body.tk-corners-square .rx-offer-in, body.tk-corners-square .rx-told-card,
+body.tk-corners-square .rx-quote, body.tk-corners-square .rx-cat { border-radius: 4px; }
+body.tk-corners-square .demo-opt, body.tk-corners-square .btn, body.tk-corners-square .rx-btn, body.tk-corners-square .rx-offer-btn,
+body.tk-corners-square .demo-gate input, body.tk-corners-square .demo-select { border-radius: 4px; }

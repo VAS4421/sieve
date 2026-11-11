@@ -105,7 +105,7 @@ async function billingGate(scorecardRow) {
 // Landing sections and lead-form settings the quiz page needs.
 function publicPageSettings(row) {
   const pc = parseProfileCapture(row.profile_capture);
-  return { leadCapture: pc.leadCapture, landing: pc.landing };
+  return { leadCapture: pc.leadCapture, landing: pc.landing, theme: pc.theme, results: pc.results };
 }
 
 function publicProfileCapture(row) {

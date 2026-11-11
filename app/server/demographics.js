@@ -36,7 +36,33 @@ function sanitizeProfileCapture(input) {
       : [],
     leadCapture: sanitizeLeadCapture(pc.leadCapture),
     landing: sanitizeLanding(pc.landing),
+    theme: sanitizeTheme(pc.theme),
+    results: sanitizeResults(pc.results),
   };
+}
+
+// Brand look for the quiz and result pages.
+function sanitizeTheme(input) {
+  const t = input && typeof input === 'object' ? input : {};
+  const hex = (v) => (/^#[0-9a-fA-F]{6}$/.test(String(v || '')) ? String(v).toUpperCase() : '');
+  const logo = String(t.logo || '').trim().slice(0, 500);
+  return {
+    accent: hex(t.accent),
+    logo: /^(https:\/\/|\/uploads\/|\/covers\/)/.test(logo) && !/["'<>\s()]/.test(logo) ? logo : '',
+    font: ['modern', 'classic', 'friendly'].includes(t.font) ? t.font : 'modern',
+    corners: ['rounded', 'soft', 'square'].includes(t.corners) ? t.corners : 'rounded',
+  };
+}
+
+// Which result sections show, and in what order. The score reveal always
+// comes first; everything else can be moved or hidden.
+const RESULT_SECTIONS = ['signs', 'pair', 'map', 'gap', 'areas', 'answers', 'told', 'cta'];
+function sanitizeResults(input) {
+  const r = input && typeof input === 'object' ? input : {};
+  const order = Array.isArray(r.order) ? r.order.filter((k, i, a) => RESULT_SECTIONS.includes(k) && a.indexOf(k) === i) : [];
+  RESULT_SECTIONS.forEach(k => { if (!order.includes(k)) order.push(k); });
+  const hidden = Array.isArray(r.hidden) ? r.hidden.filter((k, i, a) => RESULT_SECTIONS.includes(k) && a.indexOf(k) === i) : [];
+  return { order, hidden };
 }
 
 // Where the lead form sits and what it asks. Stored inside the scorecard's
@@ -76,4 +102,4 @@ function parseProfileCapture(rawJson) {
   return sanitizeProfileCapture(parsed);
 }
 
-module.exports = { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture, sanitizeLeadCapture, sanitizeLanding };
+module.exports = { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, sanitizeProfileCapture, parseProfileCapture, sanitizeLeadCapture, sanitizeLanding, sanitizeTheme, sanitizeResults, RESULT_SECTIONS };

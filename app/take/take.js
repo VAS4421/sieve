@@ -45,6 +45,29 @@
   document.title = `${scorecard.title} — ${brandName}`;
   const brandEl = document.getElementById('brand-name');
   if (brandEl) brandEl.textContent = brandName;
+  applyTheme(scorecard.theme || {});
+
+  // The owner's brand look: accent colour (with lighter/darker shades worked
+  // out from it), their logo in place of Sieve's, a font style and corners.
+  function applyTheme(t) {
+    const rootStyle = document.documentElement.style;
+    if (/^#[0-9A-Fa-f]{6}$/.test(t.accent || '')) {
+      const n = parseInt(t.accent.slice(1), 16), rgb = [n >> 16, (n >> 8) & 255, n & 255];
+      const mix = (to, f) => '#' + rgb.map(c => Math.round(c + (to - c) * f).toString(16).padStart(2, '0')).join('');
+      rootStyle.setProperty('--accent', t.accent);
+      rootStyle.setProperty('--accent-2', mix(255, 0.35));
+      rootStyle.setProperty('--accent-soft', mix(255, 0.88));
+      rootStyle.setProperty('--accent-ink', mix(0, 0.45));
+      rootStyle.setProperty('--blue', t.accent);
+      document.body.classList.add('tk-themed');
+    }
+    if (t.logo) {
+      const img = document.querySelector('.demo-topbar .brand-mark');
+      if (img) { img.src = t.logo; img.alt = `${brandName} logo`; img.classList.add('tk-own-logo'); }
+    }
+    if (t.font && t.font !== 'modern') document.body.classList.add(`tk-font-${t.font}`);
+    if (t.corners && t.corners !== 'rounded') document.body.classList.add(`tk-corners-${t.corners}`);
+  }
 
   let step = -1;
   const answers = [];
@@ -688,7 +711,14 @@
         </div>
       </section>`;
 
-    root.innerHTML = `<div class="rx">${hero}${signsBlock}${pair}${mapBlock}${gapBlock}${catBlock}${insBlock}${toldBlock}${ctaBlock}${keep}</div>
+    // owner-chosen order and visibility for everything after the score reveal
+    const layout = scorecard.results || {};
+    const blocks = { signs: signsBlock, pair, map: mapBlock, gap: gapBlock, areas: catBlock, answers: insBlock, told: toldBlock, cta: ctaBlock };
+    const order = (Array.isArray(layout.order) && layout.order.length ? layout.order : Object.keys(blocks)).filter(k => blocks[k] !== undefined);
+    Object.keys(blocks).forEach(k => { if (!order.includes(k)) order.push(k); });
+    const hiddenSet = new Set(Array.isArray(layout.hidden) ? layout.hidden : []);
+    const body = order.filter(k => !hiddenSet.has(k)).map(k => blocks[k]).join('');
+    root.innerHTML = `<div class="rx">${hero}${body}${keep}</div>
       ${hasCta ? `<div class="rx-sticky" id="rx-sticky" aria-hidden="true"><span><b>${p.overall}%</b> ${cats.length > 1 ? `· your quickest win is ${escapeHtml(weakest.label)}` : `· ${escapeHtml(p.tierLabel)}`}</span><a class="rx-btn" href="${escapeHtml(p.recommendationUrl)}" target="_blank" rel="noopener" tabindex="-1">${ctaLabel}${arrow}</a></div>` : ''}`;
     document.body.classList.add('is-result');
     const bar = document.querySelector('.demo-progress-wrap');
@@ -730,12 +760,12 @@
 
     // the slim next-step bar: shows once the hero button has scrolled away, hides at the main call to action
     const sticky = document.getElementById('rx-sticky');
-    if (sticky && 'IntersectionObserver' in window) {
+    if (sticky && 'IntersectionObserver' in window && root.querySelector('.rx-hero-btn')) {
       const heroBtn = root.querySelector('.rx-hero-btn'), cta = document.getElementById('rx-cta');
       let pastHero = false, atCta = false;
       const update = () => { const show = pastHero && !atCta; sticky.classList.toggle('show', show); sticky.setAttribute('aria-hidden', String(!show)); sticky.querySelector('a').tabIndex = show ? 0 : -1; };
       new IntersectionObserver(([e]) => { pastHero = !e.isIntersecting && e.boundingClientRect.top < 0; update(); }).observe(heroBtn);
-      new IntersectionObserver(([e]) => { atCta = e.isIntersecting; update(); }, { threshold: 0.2 }).observe(cta);
+      if (cta) new IntersectionObserver(([e]) => { atCta = e.isIntersecting; update(); }, { threshold: 0.2 }).observe(cta);
     }
   }
 

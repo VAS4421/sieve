@@ -25,3 +25,21 @@ test('unknown values fall back safely', () => {
   assert.strictEqual(pc.leadCapture.position, 'start');
   assert.strictEqual(pc.leadCapture.phone, 'required');
 });
+
+const { sanitizeTheme, sanitizeResults } = require('../demographics');
+
+test('theme accepts a hex colour and safe logo links only', () => {
+  assert.strictEqual(sanitizeTheme({ accent: '#12ab34' }).accent, '#12AB34');
+  assert.strictEqual(sanitizeTheme({ accent: 'red' }).accent, '');
+  assert.strictEqual(sanitizeTheme({ logo: 'javascript:alert(1)' }).logo, '');
+  assert.strictEqual(sanitizeTheme({ logo: 'https://x.test/a.png" onerror="x' }).logo, '');
+  assert.strictEqual(sanitizeTheme({ logo: '/uploads/abc.png' }).logo, '/uploads/abc.png');
+  assert.deepStrictEqual([sanitizeTheme({}).font, sanitizeTheme({}).corners], ['modern', 'rounded']);
+});
+
+test('results layout keeps every section exactly once, in the owner order', () => {
+  const r = sanitizeResults({ order: ['cta', 'map', 'bogus', 'cta'], hidden: ['pair', 'nope'] });
+  assert.deepStrictEqual(r.order.slice(0, 2), ['cta', 'map']);
+  assert.strictEqual(r.order.length, 8);
+  assert.deepStrictEqual(r.hidden, ['pair']);
+});
