@@ -100,7 +100,12 @@
     r.hidden ||= []; return r;
   };
   // "www.site.com" -> "https://www.site.com"; checked the same way the server checks it
-  const normalizeLink = (raw) => { let v = String(raw || '').trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; return v; };
+  // forgiving about phone keyboards: "www vasnet.com" or "Www. vasnet .com" become "https://www.vasnet.com"
+  const normalizeLink = (raw) => {
+    let v = String(raw || '').trim().replace(/^(https?:\/\/)?www\s+/i, '$1www.').replace(/\s*\.\s*/g, '.').replace(/\s+/g, '');
+    if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+    return v.replace(/^(https?:\/\/)www\./i, '$1www.').replace(/^HTTPS?:\/\//, m => m.toLowerCase());
+  };
   const validLink = (v) => { try { const u = new URL(v); return /^https?:$/.test(u.protocol) && u.hostname.includes('.') && !/["'<>\s]/.test(v); } catch { return false; } };
   const tiersWithoutButton = () => RES().ctaUrl ? [] : state.tiers.filter(t => !(t.recommendationUrl || '').trim());
   const isAboutQ = (q) => q && q.kind === 'about';
