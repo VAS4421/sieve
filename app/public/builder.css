@@ -350,3 +350,6 @@ body.no-sub .sb-sub, body.no-panel .sb-panel { padding: 0; border: 0; overflow: 
 .sb-warnpill { background: #FDE3C0; color: #8A4B00; }
 .sb-okpill { background: var(--good-soft); color: #0B5E43; }
 .sb-nobtn { font-style: normal; font-size: 10.5px; font-weight: 800; color: #8A4B00; background: #FDE3C0; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+.sb-in.sb-bad { border-color: #D64545; background: #FFF5F5; }
+.sb-badmsg { display: block; color: #B3261E; font-size: 12px; font-weight: 600; margin-top: 4px; }
+.sb-badmsg:empty { display: none; }

@@ -99,6 +99,9 @@
     r.order = (r.order || []).filter(k => RES_LABELS[k]); Object.keys(RES_LABELS).forEach(k => { if (!r.order.includes(k)) r.order.push(k); });
     r.hidden ||= []; return r;
   };
+  // "www.site.com" -> "https://www.site.com"; checked the same way the server checks it
+  const normalizeLink = (raw) => { let v = String(raw || '').trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; return v; };
+  const validLink = (v) => { try { const u = new URL(v); return /^https?:$/.test(u.protocol) && u.hostname.includes('.') && !/["'<>\s]/.test(v); } catch { return false; } };
   const tiersWithoutButton = () => RES().ctaUrl ? [] : state.tiers.filter(t => !(t.recommendationUrl || '').trim());
   const isAboutQ = (q) => q && q.kind === 'about';
   const isTextQ = (q) => isAboutQ(q) && q.format === 'text';
@@ -177,6 +180,7 @@
           <div class="sb-sub-head" style="margin:0"><b>Next step button</b>${missing.length ? '<em class="sb-warnpill">Needed</em>' : '<em class="sb-okpill">✓ On</em>'}</div>
           <p class="sb-hint">${missing.length ? `Without a button link, leads see no next step and no "Your plan" card. ${missing.length === state.tiers.length ? 'No result has a button yet.' : `${missing.length} of ${state.tiers.length} results have no button.`}` : 'Every result shows your next-step button and plan card.'}</p>
           <input id="cta-url" class="sb-in" type="url" placeholder="https://wa.me/234… or your booking page" value="${esc(R.ctaUrl || '')}" />
+          <small class="sb-badmsg" id="cta-msg"></small>
           <input id="cta-label" class="sb-in" style="margin-top:6px" maxlength="60" placeholder="Button text, e.g. Chat on WhatsApp" value="${esc(R.ctaLabel || '')}" />
           <div class="sb-chips" style="margin-top:6px">${['Chat on WhatsApp', 'Book a free call', 'Get a quote'].map(x => `<button class="sb-chip" data-ctaq="${esc(x)}">${esc(x)}</button>`).join('')}</div>
           <small class="sb-hint">Used for every result that doesn't have its own button. Open a tier to give it a different one.</small>
@@ -195,15 +199,21 @@
       $$('[data-secon]', el).forEach(cb => cb.onchange = () => { const r = RES(), k = cb.dataset.secon; r.hidden = cb.checked ? r.hidden.filter(x => x !== k) : [...new Set([...r.hidden, k])]; changed(); drawSub(); });
       $$('[data-secmv]', el).forEach(b => b.onclick = () => { const [k, d] = b.dataset.secmv.split(':'); const o = RES().order, i = o.indexOf(k), j = i + Number(d); if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; changed(); drawSub(); });
       const cu = $('#cta-url', el), cl = $('#cta-label', el);
-      cu.onchange = () => {
-        let v = cu.value.trim();
-        if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
-        R.ctaUrl = v; if (v && !R.ctaLabel) R.ctaLabel = /wa\.me|whatsapp/i.test(v) ? 'Chat on WhatsApp' : 'Book a free call';
-        changed(); drawSub(); drawCanvas(); drawPanel();
+      // saved as you type, so nothing is lost if you tap something else straight away
+      const commitUrl = () => {
+        const v = normalizeLink(cu.value);
+        const ok = !v || validLink(v);
+        cu.classList.toggle('sb-bad', !ok);
+        const msg = $('#cta-msg', el); if (msg) msg.textContent = ok ? '' : 'That doesn\'t look like a web address yet, e.g. www.yoursite.com or wa.me/2348012345678';
+        if (!ok) return false;
+        if (R.ctaUrl !== v) { R.ctaUrl = v; if (v && !R.ctaLabel) R.ctaLabel = /wa\.me|whatsapp/i.test(v) ? 'Chat on WhatsApp' : 'Book a free call'; changed(); }
+        return true;
       };
+      cu.oninput = () => { clearTimeout(window.__ctaT); window.__ctaT = setTimeout(commitUrl, 400); };
+      cu.onchange = () => { if (commitUrl()) { cu.value = R.ctaUrl; drawSub(); drawCanvas(); drawPanel(); } };
       cl.oninput = () => { R.ctaLabel = cl.value; changed(); };
       cl.onchange = () => drawCanvas();
-      $$('[data-ctaq]', el).forEach(b => b.onclick = () => { R.ctaLabel = b.dataset.ctaq; changed(); drawSub(); drawCanvas(); });
+      $$('[data-ctaq]', el).forEach(b => b.onclick = () => { commitUrl(); R.ctaLabel = b.dataset.ctaq; changed(); drawSub(); drawCanvas(); });
       $$('[data-tier]', el).forEach(b => b.onclick = () => { TIER = +b.dataset.tier; SEL = { type: 'tier', i: TIER }; drawSub(); drawCanvas(); drawPanel(); });
       const at = $('#add-tier', el); if (at) at.onclick = addTier;
     } else el.innerHTML = '';
@@ -496,7 +506,9 @@
       if (v >= above) { v = above - 1; showToast(`Must be below ${above}% (the tier above).`, 'info'); }
       t.min = v; mi.value = v; changed(); drawSub(); drawCanvas(); drawPanel();
     };
-    $('#t-url').onchange = (e) => { let v = e.target.value.trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; t.recommendationUrl = v; e.target.value = v; changed(); drawSub(); drawCanvas(); };
+    const tUrlCommit = (e) => { const v = normalizeLink(e.target.value); const ok = !v || validLink(v); e.target.classList.toggle('sb-bad', !ok); if (!ok) return false; if (t.recommendationUrl !== v) { t.recommendationUrl = v; changed(); } return true; };
+    $('#t-url').oninput = (e) => { clearTimeout(window.__turlT); window.__turlT = setTimeout(() => tUrlCommit(e), 400); };
+    $('#t-url').onchange = (e) => { if (tUrlCommit(e)) { e.target.value = t.recommendationUrl || ''; drawSub(); drawCanvas(); } else showToast('That doesn\'t look like a web address yet.'); };
     $('#t-btn').oninput = (e) => { t.recommendationLabel = e.target.value; changed(); };
     $('#t-signs').oninput = (e) => { t.signs = e.target.value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 6); changed(); };
     $('#t-btn').onchange = () => drawCanvas();
