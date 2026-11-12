@@ -16,8 +16,11 @@ async function api(path, opts = {}) {
 // otherwise resolves with the current user and paints their business name in.
 async function requireUser() {
   try {
-    const { user } = await api('/auth/me');
+    const { user, isAdmin } = await api('/auth/me');
     document.querySelectorAll('[data-user-business]').forEach(el => { el.textContent = user.business_name; });
+    // VASNET admins see the Admin link; everyone else never does
+    if (isAdmin) document.querySelectorAll('[data-admin-link]').forEach(el => { el.hidden = false; });
+    user.isAdmin = !!isAdmin;
     return user;
   } catch {
     window.location.href = '/login.html';

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>Admin — Sieve</title>
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="stylesheet" href="/styles.css" />
+<link rel="stylesheet" href="/app.css" />
+<style>
+  .ad-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .ad-kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .ad-kpi b { display: block; font-size: 26px; letter-spacing: -.02em; color: var(--ink); }
+  .ad-kpi span { font-size: 12.5px; color: var(--ink-faint); font-weight: 700; }
+  .ad-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+  .ad-tabs .grow { flex: 1; }
+  .ad-tabs input { max-width: 280px; }
+  .ad-muted { color: var(--ink-faint); }
+  .ad-pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; background: var(--surface-sunk); color: var(--ink-soft, var(--ink)); }
+  .ad-pill.live { background: #E3F7EC; color: #0E7A4F; }
+  td { white-space: nowrap; } td.wrap { white-space: normal; min-width: 180px; }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="app-topbar">
+      <a href="/dashboard.html" class="brand" style="font-size:16px;">← <img src="/logo.png" class="brand-mark" style="width:26px;height:26px;" alt="Sieve logo" />Sieve</a>
+      <div class="actions"><button class="btn btn-ghost btn-sm" data-logout>Log out</button></div>
+    </div>
+    <main class="app-main">
+      <div class="page-head"><h1>Admin</h1></div>
+      <p class="ad-muted" style="margin:-6px 0 16px;">Every business on Sieve, their scorecards and their leads. View only.</p>
+      <div id="content"><p class="ad-muted">Loading…</p></div>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+  <script>
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const naira = (k) => '₦' + Math.round((Number(k) || 0) / 100).toLocaleString('en-NG');
+    const day = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+    const n = (x) => Number(x || 0).toLocaleString('en-NG');
+    let DATA = null, TAB = 'businesses', Q = '';
+
+    function table(head, rows) { return `<div class="leads-table-wrap"><table class="leads"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('') || `<tr><td colspan="${head.length}" class="ad-muted">Nothing here.</td></tr>`}</tbody></table></div>`; }
+    const match = (...xs) => !Q || xs.join(' ').toLowerCase().includes(Q);
+
+    function draw() {
+      const t = DATA.totals;
+      let body = '';
+      if (TAB === 'businesses') body = table(['Business', 'Email', 'Plan / billing', 'Credits', 'Scorecards', 'Leads', 'Last lead', 'Joined'],
+        DATA.businesses.filter((b) => match(b.business_name, b.email)).map((b) => `<tr><td class="wrap"><b>${esc(b.business_name)}</b>${b.has_ever_paid ? ' <span class="ad-pill live">paid</span>' : ''}</td><td><a href="mailto:${esc(b.email)}">${esc(b.email)}</a></td><td>${esc(b.plan || 'free')} · ${esc(b.billing_mode || '')}</td><td>${n(b.credit_balance)}</td><td>${n(b.scorecards)} <span class="ad-muted">(${n(b.live)} live)</span></td><td>${n(b.leads)}</td><td>${day(b.last_lead)}</td><td>${day(b.created_at)}</td></tr>`));
+      if (TAB === 'scorecards') body = table(['Scorecard', 'Business', 'Status', 'Started', 'Leads', 'Updated', ''],
+        DATA.scorecards.filter((s) => match(s.title, s.business_name)).map((s) => `<tr><td class="wrap"><b>${esc(s.title)}</b></td><td>${esc(s.business_name)}</td><td><span class="ad-pill ${s.published ? 'live' : ''}">${s.published ? 'Live' : 'Draft'}</span></td><td>${n(s.starts)}</td><td>${n(s.leads)}</td><td>${day(s.updated_at)}</td><td>${s.published ? `<a href="/take/index.html?slug=${encodeURIComponent(s.slug)}" target="_blank" rel="noopener">Open</a>` : ''}</td></tr>`));
+      if (TAB === 'leads') body = table(['When', 'Lead', 'Phone', 'Email', 'Score', 'Tier', 'Scorecard', 'Business'],
+        DATA.leads.filter((l) => match(l.first_name, l.last_name, l.email, l.phone, l.scorecard, l.business_name)).map((l) => `<tr><td>${day(l.created_at)}</td><td><b>${esc(((l.first_name || '') + ' ' + (l.last_name || '')).trim() || '—')}</b></td><td>${esc(l.phone || '—')}</td><td>${esc(l.email || '—')}</td><td>${l.overall_score == null ? '—' : Math.round(l.overall_score) + '%'}</td><td>${esc(l.tier || '—')}</td><td class="wrap">${esc(l.scorecard)}</td><td>${esc(l.business_name)}</td></tr>`));
+      document.getElementById('content').innerHTML = `
+        <div class="ad-kpis">
+          <div class="ad-kpi"><b>${n(t.businesses)}</b><span>Businesses · +${n(t.signups_week)} this week</span></div>
+          <div class="ad-kpi"><b>${n(t.scorecards)}</b><span>Scorecards · ${n(t.live)} live</span></div>
+          <div class="ad-kpi"><b>${n(t.leads)}</b><span>Leads · +${n(t.leads_week)} this week</span></div>
+          <div class="ad-kpi"><b>${naira(Number(t.credit_kobo) + Number(t.cpl_kobo))}</b><span>Paid in (credits + per-lead)</span></div>
+        </div>
+        <div class="ad-tabs">${[['businesses', 'Businesses'], ['scorecards', 'Scorecards'], ['leads', 'Recent leads']].map(([k, l]) => `<button class="btn btn-sm ${k === TAB ? 'btn-primary' : 'btn-ghost'}" data-tab="${k}">${l}</button>`).join('')}
+          <span class="grow"></span><span class="field" style="margin:0"><input id="q" placeholder="Search name, email, business…" value="${esc(Q)}" /></span></div>
+        ${body}`;
+      document.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { TAB = b.dataset.tab; draw(); });
+      const q = document.getElementById('q'); q.oninput = () => { Q = q.value.trim().toLowerCase(); const pos = q.selectionStart; draw(); const q2 = document.getElementById('q'); q2.focus(); q2.setSelectionRange(pos, pos); };
+    }
+
+    (async () => {
+      const user = await requireUser();
+      if (!user) return;
+      if (!user.isAdmin) { document.getElementById('content').innerHTML = '<p class="ad-muted">This page is for Sieve admins only.</p>'; return; }
+      try { DATA = await api('/admin/overview'); draw(); }
+      catch (e) { document.getElementById('content').innerHTML = `<p class="ad-muted">${esc(e.message)}</p>`; }
+    })();
+  </script>
+</body>
+</html>

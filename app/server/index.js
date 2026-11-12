@@ -23,6 +23,7 @@ app.use('/api/public', require('./routes/public'));
 app.use('/api/billing', require('./routes/billing'));
 app.use('/api/team', require('./routes/team'));
 app.use('/api/templates', require('./routes/templates'));
+app.use('/api/admin', require('./routes/admin'));
 
 // The static-file serving below (all three roots) is broad by necessity — the
 // marketing site's assets live loose at the repo root. That means it's

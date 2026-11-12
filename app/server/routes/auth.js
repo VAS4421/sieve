@@ -76,7 +76,8 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: req.user, isOwner: req.isOwner, member: req.member || null });
+  const { isAdminUser } = require('../adminAccess');
+  res.json({ user: req.user, isOwner: req.isOwner, member: req.member || null, isAdmin: isAdminUser(req.user, req.isOwner) });
 });
 
 // Always responds the same way whether or not the email exists, so this
