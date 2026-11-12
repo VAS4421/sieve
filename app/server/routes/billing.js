@@ -165,9 +165,28 @@ router.post('/mode', requireAuth, async (req, res) => {
   }
 });
 
+// Response limits: free accounts get 10 responses per scorecard; subscriptions get a monthly allowance (then credits).
+const FREE_PLAN_RESPONSE_LIMIT = 10;
+const RESPONSE_LIMITS = { free: 10, starter: 100, business: 500, pro: 1000, enterprise: Infinity };
+
+// How much of its limit an account has used, for the dashboard warning (80% and 100%). The monthly count resets 30 days
+// after the last reset, the same rule the response gate in public.js uses.
+async function usageFor(user, userId) {
+  if (!user.has_ever_paid) {
+    const r = await get('SELECT COALESCE(MAX(c), 0) AS used FROM (SELECT COUNT(*) AS c FROM leads l JOIN scorecards s ON s.id = l.scorecard_id WHERE s.user_id = ? GROUP BY s.id) t', [userId]);
+    return { kind: 'free', used: Number(r.used), limit: FREE_PLAN_RESPONSE_LIMIT, resetsAt: null };
+  }
+  if (user.billing_mode !== 'subscription') return null;
+  const limit = RESPONSE_LIMITS[user.plan] ?? RESPONSE_LIMITS.free;
+  if (!Number.isFinite(limit)) return null;
+  const resetAt = user.monthly_reset_at ? new Date(user.monthly_reset_at) : null;
+  const fresh = !resetAt || Date.now() - resetAt.getTime() > 30 * 86400000;
+  return { kind: 'monthly', used: fresh ? 0 : Number(user.monthly_responses_used) || 0, limit, resetsAt: fresh ? null : new Date(resetAt.getTime() + 30 * 86400000).toISOString() };
+}
+
 router.get('/wallet', requireAuth, async (req, res) => {
   const user = await get(
-    'SELECT plan, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at FROM users WHERE id = ?',
+    'SELECT plan, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at, monthly_responses_used, monthly_reset_at FROM users WHERE id = ?',
     [req.user.id]
   );
   const { total } = await get(
@@ -188,11 +207,14 @@ router.get('/wallet', requireAuth, async (req, res) => {
     hasEverPaid: !!user.has_ever_paid,
     planExpiresAt: user.plan_expires_at,
     planExpired,
+    usage: await usageFor(user, req.user.id),
   });
 });
 
 module.exports = router;
 module.exports.CREDIT_BUNDLES = CREDIT_BUNDLES;
+module.exports.RESPONSE_LIMITS = RESPONSE_LIMITS;
+module.exports.FREE_PLAN_RESPONSE_LIMIT = FREE_PLAN_RESPONSE_LIMIT;
 module.exports.CPL_DEFAULT_RATE_KOBO = CPL_DEFAULT_RATE_KOBO;
 module.exports.CARD_VERIFY_AMOUNT_KOBO = CARD_VERIFY_AMOUNT_KOBO;
 

@@ -223,6 +223,22 @@
 
   /* ---------- billing status (unchanged logic) ---------- */
   function fmtNaira(kobo) { return '₦' + (kobo / 100).toLocaleString('en-NG'); }
+  // The plan's response allowance: a gentle warning from 80%, a clear one at 100% (with what keeps leads coming in).
+  function quotaAlert(w) {
+    const u = w.usage; if (!u || !u.limit) return '';
+    const pct = u.used / u.limit; if (pct < 0.8) return '';
+    const when = u.resetsAt ? new Date(u.resetsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+    const credits = Number(w.creditBalance) || 0;
+    const btn = (href, label, accent) => `<a class="btn ${accent ? 'btn-accent' : 'btn-ghost'} btn-sm" href="${href}">${label}</a>`;
+    if (u.kind === 'free') {
+      return pct >= 1
+        ? `<div class="billing-alert"><span><strong>Your free plan's ${u.limit} responses are used up.</strong> New visitors can't take your scorecard until you choose a plan or buy credits.</span>${btn('/billing.html', 'Choose a plan', true)}</div>`
+        : `<div class="billing-alert" style="background:#FFF7E6;border-color:#F5C46B"><span><strong>You've used ${u.used} of your ${u.limit} free responses.</strong> Buy credits to keep collecting leads without a break.</span>${btn('/billing.html?tab=credits', 'Buy credits', true)}</div>`;
+    }
+    if (pct >= 1 && credits > 0) return `<div class="billing-alert" style="background:#EEF4FF;border-color:#A9BEFF"><span><strong>This month's ${u.limit} responses are used up, so new leads now use your credits.</strong> ${credits} credit${credits === 1 ? '' : 's'} left${when ? ` · your plan resets on ${when}` : ''}.</span>${btn('/billing.html?tab=credits', 'Top up credits', false)}</div>`;
+    if (pct >= 1) return `<div class="billing-alert"><span><strong>This month's ${u.limit} responses are used up.</strong> Your scorecards are paused for new visitors${when ? ` until ${when}` : ''}. Top up credits to keep collecting now, or upgrade your plan.</span>${btn('/billing.html?tab=credits', 'Top up credits', true)}${btn('/billing.html?tab=subscription', 'Upgrade', false)}</div>`;
+    return `<div class="billing-alert" style="background:#FFF7E6;border-color:#F5C46B"><span><strong>You've used ${u.used} of your ${u.limit} responses this month.</strong> When they run out, new leads use your credits${credits ? ` (${credits} left)` : ', so top some up to avoid a pause'}.</span>${btn('/billing.html?tab=credits', 'Top up credits', !credits)}</div>`;
+  }
   async function renderBillingStatus() {
     try {
       const wallet = await api('/billing/wallet');
@@ -233,12 +249,12 @@
         alertEl.innerHTML = `<div class="billing-alert"><span><strong>We couldn't charge your card for a recent lead.</strong> Your scorecards can't collect leads again until you replace your card.</span><a class="btn btn-accent btn-sm" href="/billing.html">Replace card</a></div>`;
       } else if (wallet.billingMode === 'cpl' && !wallet.hasCardOnFile) {
         alertEl.innerHTML = `<div class="billing-alert"><span><strong>No card on file for pay-per-lead.</strong> Your scorecards can't collect leads until you save a card.</span><a class="btn btn-accent btn-sm" href="/billing.html">Save a card</a></div>`;
-      } else alertEl.innerHTML = '';
+      } else alertEl.innerHTML = quotaAlert(wallet);
       let summary;
       if (wallet.billingMode === 'credits') summary = `${wallet.creditBalance} credit${wallet.creditBalance === 1 ? '' : 's'} left`;
       else if (wallet.billingMode === 'cpl') summary = `${fmtNaira(wallet.cplRateKobo)} per lead · ${wallet.cplChargeFailing ? 'card failing' : wallet.hasCardOnFile ? 'card on file' : 'no card saved'}`;
       else if (!wallet.hasEverPaid) summary = 'Free plan · 1 scorecard';
-      else summary = 'Subscription plan';
+      else summary = wallet.usage && wallet.usage.limit ? `${wallet.usage.used} of ${wallet.usage.limit} responses this month` : 'Subscription plan';
       $('#usage-summary').innerHTML = `<a href="/billing.html" class="ds-usage">${summary}</a>`;
     } catch { /* never blocks the dashboard */ }
   }

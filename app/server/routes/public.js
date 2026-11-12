@@ -8,7 +8,7 @@ const { buildReportPdf } = require('../pdf');
 const rateLimit = require('../middleware/rateLimit');
 const { newLeadEmail, leadResultsEmail, creditsExhaustedEmail, appUrl } = require('../mailer');
 const { AGE_RANGES, GENDERS, SOCIAL_CLASSES, LOCATIONS, parseProfileCapture } = require('../demographics');
-const { chargeCplLead } = require('./billing');
+const { chargeCplLead, RESPONSE_LIMITS, FREE_PLAN_RESPONSE_LIMIT } = require('./billing');
 const { deliver, leadPayload } = require('../webhooks');
 
 const router = express.Router();
@@ -31,10 +31,7 @@ async function resolveBrandName(scorecardRow) {
 // the whole point of a flat monthly fee). Credits mode blocks once the
 // balance has run out; CPL mode blocks if no card is on file to charge.
 // Returns null when the scorecard is available, or a user-facing reason.
-const FREE_PLAN_RESPONSE_LIMIT = 10;
-
-// Monthly response quotas by plan (subscription mode only).
-const RESPONSE_LIMITS = { free: 10, starter: 100, business: 500, pro: 1000, enterprise: Infinity };
+// The free-plan and monthly plan limits live in billing.js (the dashboard shows the same numbers).
 
 // One brand-neutral message for every gated reason below — a random visitor
 // never needs (or should see) *why* a scorecard stopped accepting responses
@@ -44,9 +41,9 @@ const RESPONSE_LIMITS = { free: 10, starter: 100, business: 500, pro: 1000, ente
 const GATED_MESSAGES = {
   freePlanLimit: "This scorecard isn't accepting responses right now — please check back soon.",
   subscriptionExpired: "This scorecard isn't accepting responses right now — please check back soon.",
-  creditsExhausted: "This scorecard isn't accepting new responses right now — the owner is out of credits.",
+  creditsExhausted: "This scorecard isn't accepting responses right now — please check back soon.",
   cplFailing: "This scorecard isn't accepting responses right now — please check back soon.",
-  monthlyQuotaExceeded: "This scorecard isn't accepting new responses right now — the monthly quota has been reached.",
+  monthlyQuotaExceeded: "This scorecard isn't accepting responses right now — please check back soon.",
 };
 
 async function billingGate(scorecardRow) {
