@@ -35,26 +35,24 @@ function scorecardLimitFor(plan) { return SCORECARD_LIMITS[plan] ?? SCORECARD_LI
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-const COVER_IMAGE_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+// Pictures are kept in memory just long enough to check them, then saved in the database (uploads.js): 3 MB at most.
+const UPLOADS = require('../uploads');
 const coverImageUpload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOAD_DIR,
-    filename: (req, file, cb) => cb(null, `${crypto.randomUUID()}${COVER_IMAGE_EXT[file.mimetype] || ''}`),
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: UPLOADS.MAX_UPLOAD_BYTES, files: 1 },
   fileFilter: (req, file, cb) => {
-    if (!COVER_IMAGE_EXT[file.mimetype]) return cb(new Error('Please upload a JPG, PNG, WEBP, or GIF image.'));
+    if (!UPLOADS.TYPES[file.mimetype]) return cb(new Error('Please upload a JPG, PNG, WEBP, or GIF image.'));
     cb(null, true);
   },
 });
 
 router.post('/upload-cover', (req, res) => {
-  coverImageUpload.single('cover')(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
+  coverImageUpload.single('cover')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'That picture is too large (3 MB at most).' : (err.message || 'Upload failed.') });
     if (!req.file) return res.status(400).json({ error: 'No file received.' });
-    const { imageBytesOk } = require('../security');
-    if (!imageBytesOk(req.file.path)) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'That file is not a real JPG, PNG, WEBP or GIF image.' }); }
-    res.status(201).json({ url: `/uploads/${req.file.filename}` });
+    if (!UPLOADS.imageBufferOk(req.file.buffer, req.file.mimetype)) return res.status(400).json({ error: 'That file is not a real JPG, PNG, WEBP or GIF image.' });
+    try { res.status(201).json({ url: await UPLOADS.saveUpload(req.user.id, req.file.mimetype, req.file.buffer) }); }
+    catch (e) { res.status(500).json({ error: 'Upload failed. Please try again.' }); console.error('[uploads] save failed:', e.message); }
   });
 });
 

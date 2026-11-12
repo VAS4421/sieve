@@ -50,6 +50,9 @@ app.use(htmlWithNonce([
   { prefix: '', dir: path.join(__dirname, '..', '..') },
 ]));
 
+// uploaded covers and logos come from the database (old files on disk, if any, still fall through to the static server)
+app.get('/uploads/:file', require('./uploads').serveUpload);
+
 // Builder / dashboard app — protected in the browser by checking /api/auth/me,
 // not by the static file server (a real deploy could add server-side gating too).
 app.use(express.static(path.join(__dirname, '..', 'public'), { dotfiles: 'deny' }));
@@ -90,6 +93,7 @@ if (require.main === module) {
         console.log(`  Sign up / dashboard: http://localhost:${PORT}/signup.html`);
         const { startNudgeJob } = require('./nudge');
         startNudgeJob();
+        require('./uploads').startUploadSweep();   // removes pictures no scorecard uses any more
       });
     })
     .catch((err) => {

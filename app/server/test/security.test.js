@@ -89,3 +89,16 @@ test('server: headers, CSRF, script nonces, framing rules', async () => {
     assert.equal((await fetch(base + '/api/auth/me', { headers: { cookie: 'sieve_session=eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIn0.' } })).status, 401);
   } finally { server.close(); }
 });
+
+test('uploads: 3 MB limit, real image bytes only', () => {
+  process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://u:p@127.0.0.1:1/none';
+  const U = require('../uploads');
+  assert.equal(U.MAX_UPLOAD_BYTES, 3 * 1024 * 1024);
+  const png = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(8)]);
+  const webp = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP'), Buffer.alloc(4)]);
+  assert.equal(U.imageBufferOk(png, 'image/png'), true);
+  assert.equal(U.imageBufferOk(webp, 'image/webp'), true);
+  assert.equal(U.imageBufferOk(Buffer.from('<script>alert(1)</script>....'), 'image/png'), false, 'a script dressed as a PNG');
+  assert.equal(U.imageBufferOk(png, 'image/svg+xml'), false, 'SVG is never accepted');
+  assert.equal(U.imageBufferOk(png, 'image/jpeg'), false, 'type must match the bytes');
+});

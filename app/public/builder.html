@@ -557,10 +557,36 @@
     AREA = 'questions'; SEL = { type: 'q', i: qi }; drawAll();
     setTimeout(() => { const t = $(`[data-edit="q:${qi}"]`); t && t.focus(); }, 30);
   }
+  // Shrinks a picture in the browser before upload: longest side at most `max` pixels, re-encoded as WebP (or JPEG
+  // where WebP isn't supported; PNG for logos so transparency survives). A 6 MB phone photo usually ends up ~150-300 KB.
+  // The server still refuses anything over 3 MB, so this is about speed and space, not trust.
+  async function shrinkPicture(file, max, keepAlpha) {
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) throw new Error('Please upload a JPG, PNG, WEBP, or GIF image.');
+    if (file.size > 15 * 1024 * 1024) throw new Error('That picture is too large. Please choose one under 15 MB.');
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('That file is not a picture we can read.')); i.src = url; });
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      const g = c.getContext('2d');
+      const toBlob = (type, q) => new Promise((ok) => c.toBlob(ok, type, q));
+      g.drawImage(img, 0, 0, c.width, c.height);
+      let blob = await toBlob('image/webp', 0.82);
+      if (!blob || blob.type !== 'image/webp') {
+        if (keepAlpha) blob = await toBlob('image/png');
+        else { g.globalCompositeOperation = 'destination-over'; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); blob = await toBlob('image/jpeg', 0.84); }
+      }
+      // keep whichever is smaller: the shrunk copy, or the original if it was already small and allowed
+      const out = blob && (blob.size < file.size || file.size > 3 * 1024 * 1024) ? blob : file;
+      if (out.size > 3 * 1024 * 1024) throw new Error('That picture is still over 3 MB after shrinking. Please choose a smaller one.');
+      return out;
+    } finally { URL.revokeObjectURL(url); }
+  }
   async function uploadCover(file) {
     try {
       showToast('Uploading cover…', 'info');
-      const form = new FormData(); form.append('cover', file);
+      const small = await shrinkPicture(file, 1200, false);
+      const form = new FormData(); form.append('cover', small, 'cover');
       const res = await fetch('/api/scorecards/upload-cover', { method: 'POST', credentials: 'include', body: form });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Upload failed.');
@@ -637,7 +663,8 @@
       const f = e.target.files[0]; e.target.value = ''; if (!f) return;
       try {
         showToast('Uploading logo…', 'info');
-        const form = new FormData(); form.append('cover', f);
+        const small = await shrinkPicture(f, 400, true);
+        const form = new FormData(); form.append('cover', small, 'logo');
         const res = await fetch('/api/scorecards/upload-cover', { method: 'POST', credentials: 'include', body: form });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Upload failed.');

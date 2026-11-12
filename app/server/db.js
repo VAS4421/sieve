@@ -219,6 +219,16 @@ async function migrate() {
     -- are the identical JSON shape scorecards.js already reads/writes), plus
     -- the marketing metadata (description, filter_category, cta_label) that
     -- used to live only in templates.html's hand-written cards.
+    -- uploaded pictures (covers, logos): stored here so a redeploy can't wipe them; see uploads.js
+    CREATE TABLE IF NOT EXISTS uploads (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      mime TEXT NOT NULL,
+      data BYTEA NOT NULL,
+      size INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS templates (
       id TEXT PRIMARY KEY,
       slug TEXT UNIQUE NOT NULL,
