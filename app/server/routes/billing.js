@@ -14,9 +14,9 @@ router.get('/config', (req, res) => {
 });
 
 const PLAN_PRICES_KOBO = {
-  starter: 1500000,   // ₦15,000
-  business: 6000000,  // ₦60,000
-  pro: 10000000,      // ₦100,000
+  starter: 1148900,   // ₦11,489 a month (100 responses)
+  business: 4488900,  // ₦44,889 a month (500 responses)
+  pro: 7488900,       // ₦74,889 a month (1,000 responses)
 };
 
 router.get('/plan-prices', (req, res) => {
@@ -58,9 +58,9 @@ router.post('/verify', requireAuth, async (req, res) => {
 // a recurring subscription top up in one go, spend it down as leads come in) ---
 
 const CREDIT_BUNDLES = {
-  starter100: { credits: 100, amountKobo: 1800000, label: '100 credits — ₦18,000' },
-  growth500: { credits: 500, amountKobo: 7000000, label: '500 credits — ₦70,000', badge: 'Most Popular' },
-  scale2000: { credits: 2000, amountKobo: 24000000, label: '2,000 credits — ₦240,000', badge: 'Best Value' },
+  starter50: { credits: 50, amountKobo: 658900, label: '50 credits — ₦6,589' },
+  growth200: { credits: 200, amountKobo: 2177200, label: '200 credits — ₦21,772', badge: 'Most Popular' },
+  scale1000: { credits: 1000, amountKobo: 8788900, label: '1,000 credits — ₦87,889', badge: 'Best Value' },
 };
 
 router.get('/credit-bundles', (req, res) => {
@@ -97,7 +97,7 @@ router.post('/credits/verify', requireAuth, async (req, res) => {
 // once via a ₦100 verification charge, then each qualified lead is billed
 // individually in real time as it comes in. ---
 
-const CPL_DEFAULT_RATE_KOBO = 20000; // ₦200 per qualified lead
+const CPL_DEFAULT_RATE_KOBO = 38900; // ₦389 per qualified lead (accounts that saved a card earlier keep the rate they signed up at)
 const CARD_VERIFY_AMOUNT_KOBO = 10000; // ₦100 — this charge only proves the card is real, it's never kept. Paystack itself never refunds it automatically (see refundTransaction in paystack.js) — we request the refund ourselves, right after verification, so it's automatic from the cardholder's side without anyone at the business doing it by hand.
 
 router.get('/cpl-rate', (req, res) => {

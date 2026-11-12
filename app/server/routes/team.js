@@ -14,9 +14,12 @@ const SEAT_LIMITS = { free: 1, starter: 1, business: 3, pro: 5, enterprise: Infi
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
-function seatLimitFor(plan) {
-  return SEAT_LIMITS[plan] ?? 1;
+function seatLimitFor(plan, billing) {
+  const byPlan = SEAT_LIMITS[plan] ?? 1;
+  if (billing && billing.has_ever_paid && ['credits', 'cpl'].includes(billing.billing_mode)) return Math.max(3, byPlan);
+  return byPlan;
 }
+const billingOf = (id) => get('SELECT billing_mode, has_ever_paid FROM users WHERE id = ?', [id]);
 
 router.get('/', requireAuth, async (req, res, next) => {
   try {
@@ -28,7 +31,7 @@ router.get('/', requireAuth, async (req, res, next) => {
     res.json({
       owner: { email: req.user.email, businessName: req.user.business_name },
       members: members.map(m => ({ ...m, pending: !m.active })),
-      seatLimit: seatLimitFor(req.user.plan),
+      seatLimit: seatLimitFor(req.user.plan, await billingOf(req.user.id)),
       seatsUsed,
       plan: req.user.plan,
     });
@@ -51,9 +54,9 @@ router.post('/invite', requireAuth, rateLimit({ windowMs: 60 * 60 * 1000, max: 2
 
     const existingMembers = await all('SELECT id, active FROM team_members WHERE account_id = ?', [req.user.id]);
     const seatsUsed = 1 + existingMembers.filter(m => m.active).length;
-    const limit = seatLimitFor(req.user.plan);
+    const limit = seatLimitFor(req.user.plan, await billingOf(req.user.id));
     if (seatsUsed >= limit) {
-      return res.status(402).json({ error: `Your ${req.user.plan} plan allows ${limit} seat${limit === 1 ? '' : 's'}. Upgrade to invite more people.` });
+      return res.status(402).json({ error: `Your account allows ${limit} seat${limit === 1 ? '' : 's'}. Upgrade to invite more people.` });
     }
 
     const alreadyInvited = await get('SELECT id FROM team_members WHERE email = ?', [normalizedEmail]);

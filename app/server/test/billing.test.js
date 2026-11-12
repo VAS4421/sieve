@@ -32,10 +32,10 @@ test('switching to cpl mode without a saved card is rejected', async () => {
 test('buying a credit bundle verifies (simulated) and adds credits to the balance', async () => {
   const bundles = await client.get('/api/billing/credit-bundles');
   assert.equal(bundles.status, 200);
-  const bundle = bundles.data.bundles.find(b => b.key === 'starter100');
+  const bundle = bundles.data.bundles.find(b => b.key === 'starter50');
   assert.ok(bundle);
 
-  const res = await client.post('/api/billing/credits/verify', { reference: 'sim-ref-1', bundleKey: 'starter100' });
+  const res = await client.post('/api/billing/credits/verify', { reference: 'sim-ref-1', bundleKey: 'starter50' });
   assert.equal(res.status, 200);
   assert.equal(res.data.creditsAdded, 100);
   assert.equal(res.data.creditBalance, 100);
@@ -83,7 +83,7 @@ test('cpl mode: saving a card (simulated) activates it, and a qualified lead fir
 
   const saveCard = await other.post('/api/billing/cpl/save-card', { reference: 'sim-card-ref-1' });
   assert.equal(saveCard.status, 200);
-  assert.equal(saveCard.data.rateKobo, 20000);
+  assert.equal(saveCard.data.rateKobo, 38900);
 
   const modeSwitch = await other.post('/api/billing/mode', { mode: 'cpl' });
   assert.equal(modeSwitch.status, 200);
@@ -114,5 +114,5 @@ test('cpl mode: saving a card (simulated) activates it, and a qualified lead fir
   const charge = await get('SELECT * FROM cpl_charges WHERE lead_id = ?', [leadId]);
   assert.ok(charge, 'a cpl_charges row should exist for this lead');
   assert.equal(charge.status, 'success');
-  assert.equal(charge.amount_kobo, 20000);
+  assert.equal(charge.amount_kobo, 38900);
 });

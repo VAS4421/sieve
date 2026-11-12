@@ -89,7 +89,8 @@ async function billingGate(scorecardRow) {
         await run('UPDATE users SET monthly_responses_used = 0, monthly_reset_at = now() WHERE id = ?', [scorecardRow.user_id]);
         owner.monthly_responses_used = 0;
       }
-      if (Number(owner.monthly_responses_used) >= limit) {
+      // over the monthly limit: carry on using credits if the account has topped some up, otherwise pause
+      if (Number(owner.monthly_responses_used) >= limit && !(Number(owner.credit_balance) > 0)) {
         return GATED_MESSAGES.monthlyQuotaExceeded;
       }
     }
@@ -238,7 +239,7 @@ router.post('/scorecards/:slug/submit', submitLimiter, async (req, res, next) =>
     );
 
     const owner = await get(
-      'SELECT id, email, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code, plan FROM users WHERE id = ?',
+      'SELECT id, email, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code, plan, monthly_responses_used FROM users WHERE id = ?',
       [row.user_id]
     );
     const reportUrl = `${appUrl()}/api/public/leads/${id}/report.pdf`;
@@ -270,9 +271,16 @@ router.post('/scorecards/:slug/submit', submitLimiter, async (req, res, next) =>
     } else if (owner && owner.billing_mode === 'cpl' && owner.paystack_authorization_code) {
       chargeCplLead({ owner, leadId: id }).catch(err => console.error('[public] CPL charge failed:', err));
     } else if (owner && owner.billing_mode === 'subscription') {
-      // Increment the monthly response counter for subscription accounts.
-      run('UPDATE users SET monthly_responses_used = monthly_responses_used + 1 WHERE id = ?', [owner.id])
-        .catch(err => console.error('[public] monthly response increment failed:', err));
+      // Inside the monthly allowance this counts towards the plan; past it, it uses one of the account's credits.
+      const planLimit = RESPONSE_LIMITS[owner.plan] ?? RESPONSE_LIMITS.free;
+      const overLimit = planLimit !== Infinity && Number(owner.monthly_responses_used) >= planLimit;
+      if (overLimit && Number(owner.credit_balance) > 0) {
+        run('UPDATE users SET credit_balance = GREATEST(credit_balance - 1, 0) WHERE id = ?', [owner.id])
+          .catch(err => console.error('[public] overflow credit deduction failed:', err));
+      } else {
+        run('UPDATE users SET monthly_responses_used = monthly_responses_used + 1 WHERE id = ?', [owner.id])
+          .catch(err => console.error('[public] monthly response increment failed:', err));
+      }
     }
 
     // Mark nudge-start as completed if the visitor provided a start_id.
