@@ -32,10 +32,10 @@ function cspFor(nonce, framable) {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' https://js.paystack.co`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://paystack.com https://*.paystack.com https://*.paystack.co",
+    "font-src 'self' data: https://fonts.gstatic.com https://paystack.com https://*.paystack.com",
     "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://api.paystack.co",
+    "connect-src 'self' https://api.paystack.co https://*.paystack.co https://*.paystack.com",
     'frame-src https://checkout.paystack.com https://*.paystack.co https://*.paystack.com',
     `frame-ancestors ${framable ? '*' : "'self'"}`,
     "form-action 'self'",
