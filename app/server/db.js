@@ -303,6 +303,10 @@ async function migrate() {
   if (!scorecardColumns.has('cover_image')) {
     await pool.query(`ALTER TABLE scorecards ADD COLUMN cover_image TEXT`);
   }
+  // Pricing change (Nov 2026): pay-per-lead moved from N200 to N389 per lead, for existing card-saved accounts too.
+  // Only rows still on the old N200 rate change, so this is safe to run on every start.
+  const moved = await pool.query('UPDATE users SET cpl_rate_kobo = 38900 WHERE cpl_rate_kobo = 20000');
+  if (moved.rowCount) console.log(`[migrate] moved ${moved.rowCount} pay-per-lead account(s) from N200 to N389 per lead`);
   // team members' sessions can be ended too (see requireAuth.js)
   await pool.query(`ALTER TABLE team_members ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0`);
 }
