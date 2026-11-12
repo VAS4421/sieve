@@ -186,7 +186,7 @@ async function usageFor(user, userId) {
 
 router.get('/wallet', requireAuth, async (req, res) => {
   const user = await get(
-    'SELECT plan, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at, monthly_responses_used, monthly_reset_at FROM users WHERE id = ?',
+    'SELECT plan, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at, monthly_responses_used, monthly_reset_at, is_admin FROM users WHERE id = ?',
     [req.user.id]
   );
   const { total } = await get(
@@ -207,7 +207,9 @@ router.get('/wallet', requireAuth, async (req, res) => {
     hasEverPaid: !!user.has_ever_paid,
     planExpiresAt: user.plan_expires_at,
     planExpired,
-    usage: await usageFor(user, req.user.id),
+    usage: user.is_admin ? null : await usageFor(user, req.user.id),
+    // admin (operator) accounts are never paused by billing (see billingGate in public.js), so the page shows no warnings
+    exempt: !!user.is_admin,
   });
 });
 

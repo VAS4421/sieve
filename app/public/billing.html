@@ -101,6 +101,7 @@
       // (billingGate in routes/public.js) — surfaced here, before Paystack,
       // so an owner sees this before they even pick what to pay for.
       const alertEl = document.getElementById('billing-alert');
+      if (wallet.exempt) { alertEl.innerHTML = `<div class="billing-alert" style="background:#EEF4FF;border-color:#A9BEFF"><span><strong>Admin account.</strong> Your scorecards are never paused by billing, whatever your balance shows.</span></div>`; return wallet; }
       if (wallet.billingMode === 'credits' && wallet.creditBalance <= 0) {
         alertEl.innerHTML = `<div class="billing-alert"><span><strong>You're out of response credits.</strong> Your scorecard links still work, but visitors can't submit a response or get a result until you top up.</span><button type="button" class="btn btn-accent btn-sm" data-jump-tab="credits">Top up now</button></div>`;
       } else if (wallet.billingMode === 'cpl' && wallet.cplChargeFailing) {

@@ -243,6 +243,7 @@
     try {
       const wallet = await api('/billing/wallet');
       const alertEl = $('#billing-alert');
+      if (wallet.exempt) { alertEl.innerHTML = ''; $('#usage-summary').innerHTML = `<a href="/billing.html" class="ds-usage">Admin · never paused</a>`; return; }
       if (wallet.billingMode === 'credits' && wallet.creditBalance <= 0) {
         alertEl.innerHTML = `<div class="billing-alert"><span><strong>You're out of response credits.</strong> Your scorecard links still work, but visitors can't submit a response or get a result until you top up.</span><a class="btn btn-accent btn-sm" href="/billing.html">Top up now</a></div>`;
       } else if (wallet.billingMode === 'cpl' && wallet.cplChargeFailing) {
