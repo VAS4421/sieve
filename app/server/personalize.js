@@ -544,7 +544,7 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
   // (Results > "Next step button for every tier") is used.
   let layout = {};
   try { layout = (JSON.parse(scorecard.profile_capture || '{}') || {}).results || {}; } catch { layout = {}; }
-  const tierUrl = (tierConfig.recommendationUrl && tierConfig.recommendationUrl.trim()) || '';
+  const tierUrl = (typeof tierConfig.recommendationUrl === 'string' && /^https?:\/\//i.test(tierConfig.recommendationUrl.trim()) && !/["'<>\s]/.test(tierConfig.recommendationUrl.trim()) && tierConfig.recommendationUrl.trim()) || '';
   const recommendationUrl = tierUrl || (typeof layout.ctaUrl === 'string' && /^https?:\/\//i.test(layout.ctaUrl) ? layout.ctaUrl.trim() : '');
   const recommendationLabel = (tierUrl && tierConfig.recommendationLabel && tierConfig.recommendationLabel.trim())
     || (!tierUrl && typeof layout.ctaLabel === 'string' && layout.ctaLabel.trim())
@@ -564,7 +564,7 @@ function buildPersonalizedResult({ scorecard, lead, answers, categoryScores, ove
   // A preferred-help answer can carry its own next step (option.cta), which
   // beats the tier's — the person told us how they'd like to be helped.
   const prefCta = preferred && preferred.cta && preferred.cta.url ? preferred.cta : null;
-  const finalUrl = (prefCta && prefCta.url) || recommendationUrl;
+  const finalUrl = [(prefCta && prefCta.url), recommendationUrl].find((u) => typeof u === 'string' && /^https?:\/\//i.test(u)) || '';
   const finalLabel = (prefCta && prefCta.label) || recommendationLabel;
   if (!recommendation && prefCta) recommendation = tierRecommendation(overall, weakest.label, `${seedBase}:recommendation`);
   let ctaLine = '';

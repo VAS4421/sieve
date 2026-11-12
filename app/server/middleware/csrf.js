@@ -9,6 +9,10 @@ function csrfOriginCheck(req, res, next) {
   const method = req.method.toUpperCase();
   if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return next();
 
+  // Browsers label every request with where it came from; anything from another site is refused outright.
+  const site = req.headers['sec-fetch-site'];
+  if (site && !['same-origin', 'none'].includes(site)) return res.status(403).json({ error: 'Cross-site request blocked.' });
+
   const origin = req.headers.origin || req.headers.referer;
   if (!origin) return next(); // non-browser clients (curl, server-to-server) send neither — allowed
 
@@ -19,7 +23,7 @@ function csrfOriginCheck(req, res, next) {
     return res.status(403).json({ error: 'Invalid request origin.' });
   }
 
-  if (originHost !== req.headers.host) {
+  if (originHost !== (req.headers['x-forwarded-host'] || req.headers.host)) {
     return res.status(403).json({ error: 'Cross-site request blocked.' });
   }
   next();

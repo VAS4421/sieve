@@ -272,6 +272,7 @@ async function migrate() {
     ['is_admin', 'BOOLEAN NOT NULL DEFAULT false'],
     ['monthly_responses_used', 'INTEGER NOT NULL DEFAULT 0'],
     ['monthly_reset_at', 'TIMESTAMPTZ'],
+    ['session_version', 'INTEGER NOT NULL DEFAULT 0'],
   ];
   for (const [name, def] of newUserColumns) {
     if (!userColumns.has(name)) {
@@ -292,6 +293,8 @@ async function migrate() {
   if (!scorecardColumns.has('cover_image')) {
     await pool.query(`ALTER TABLE scorecards ADD COLUMN cover_image TEXT`);
   }
+  // team members' sessions can be ended too (see requireAuth.js)
+  await pool.query(`ALTER TABLE team_members ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0`);
 }
 
 async function close() {

@@ -29,12 +29,12 @@ function cookieOptions() {
 // owner's own login and any team member's login — every existing route that
 // resolves req.user from session.sub keeps working unchanged either way.
 // `memberId` is null for the owner, or the team_members.id for a teammate.
-function signSession(accountId, memberId = null) {
-  return jwt.sign({ sub: accountId, memberId }, JWT_SECRET, { expiresIn: '24h' });
+function signSession(accountId, memberId = null, version = 0) {
+  return jwt.sign({ sub: accountId, memberId, v: version || 0 }, JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' });
 }
 
-function setSessionCookie(res, accountId, memberId = null) {
-  const token = signSession(accountId, memberId);
+function setSessionCookie(res, accountId, memberId = null, version = 0) {
+  const token = signSession(accountId, memberId, version);
   res.cookie(COOKIE_NAME, token, cookieOptions());
 }
 
@@ -51,7 +51,7 @@ function readSession(req) {
   const token = req.cookies && req.cookies[COOKIE_NAME];
   if (!token) return null;
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
   } catch {
     return null;
   }

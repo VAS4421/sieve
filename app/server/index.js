@@ -13,7 +13,12 @@ const app = express();
 // Trusts only the first hop — adjust if deploying behind more than one proxy layer.
 app.set('trust proxy', 1);
 
-app.use(express.json());
+const { securityHeaders, httpsRedirect, htmlWithNonce } = require('./security');
+app.disable('x-powered-by');
+app.get('/healthz', (req, res) => res.type('text').send('ok'));
+app.use(httpsRedirect);
+app.use(securityHeaders);
+app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 app.use(csrfOriginCheck);
 
@@ -36,6 +41,14 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/app/server')) return res.status(404).end();
   next();
 });
+
+// Every HTML page goes out with a fresh script nonce and a Content-Security-Policy (see security.js), checked in the
+// same order as the static servers below.
+app.use(htmlWithNonce([
+  { prefix: '', dir: path.join(__dirname, '..', 'public') },
+  { prefix: '/take', dir: path.join(__dirname, '..', 'take') },
+  { prefix: '', dir: path.join(__dirname, '..', '..') },
+]));
 
 // Builder / dashboard app — protected in the browser by checking /api/auth/me,
 // not by the static file server (a real deploy could add server-side gating too).

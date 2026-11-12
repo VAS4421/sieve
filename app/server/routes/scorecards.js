@@ -52,6 +52,8 @@ router.post('/upload-cover', (req, res) => {
   coverImageUpload.single('cover')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
     if (!req.file) return res.status(400).json({ error: 'No file received.' });
+    const { imageBytesOk } = require('../security');
+    if (!imageBytesOk(req.file.path)) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'That file is not a real JPG, PNG, WEBP or GIF image.' }); }
     res.status(201).json({ url: `/uploads/${req.file.filename}` });
   });
 });
@@ -214,7 +216,13 @@ router.put('/:id', async (req, res, next) => {
     const row = await ownedScorecardOr404(req, res);
     if (!row) return;
 
-    const { title, intro, categories, questions, tiers, brandName, coverImage, profileCapture, engagementMode, shareTemplate } = req.body || {};
+    const { title, intro, questions, brandName, profileCapture, engagementMode, shareTemplate } = req.body || {};
+    // every field is cleaned on the server: lengths capped, links must be plain http(s), covers must be real image addresses
+    const { sanitizeCategories, sanitizeTiers, safeCoverImage } = require('../security');
+    const categories = sanitizeCategories(req.body && req.body.categories);
+    const tiers = sanitizeTiers(req.body && req.body.tiers);
+    const coverImage = safeCoverImage(req.body && req.body.coverImage);
+    if (Array.isArray(questions) && questions.length > 100) return res.status(400).json({ error: 'A scorecard can have up to 100 questions.' });
     if (!Array.isArray(categories) || !categories.length) {
       return res.status(400).json({ error: 'A scorecard needs at least one scoring category.' });
     }
@@ -234,16 +242,16 @@ router.put('/:id', async (req, res, next) => {
       `UPDATE scorecards SET title = ?, intro = ?, categories = ?, questions = ?, tiers = ?, brand_name = ?,
        cover_image = ?, profile_capture = ?, engagement_mode = ?, share_template = ?, updated_at = now()::text WHERE id = ?`,
       [
-        title || row.title,
-        intro ?? row.intro,
+        (title && String(title).trim().slice(0, 200)) || row.title,
+        intro == null ? row.intro : String(intro).slice(0, 2000),
         JSON.stringify(categories),
         JSON.stringify(normalized),
         JSON.stringify(tiers && tiers.length ? tiers : JSON.parse(row.tiers)),
-        (brandName && brandName.trim()) || null,
-        (coverImage && coverImage.trim()) || null,
+        (brandName && String(brandName).trim().slice(0, 120)) || null,
+        coverImage || null,
         JSON.stringify(withWebhookSecret(sanitizeProfileCapture(profileCapture))),
         engagementMode ? 1 : 0,
-        (shareTemplate && shareTemplate.trim()) || null,
+        (shareTemplate && String(shareTemplate).trim().slice(0, 1000)) || null,
         row.id,
       ]
     );
