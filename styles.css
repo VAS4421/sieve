@@ -685,3 +685,52 @@ body.is-preview { padding-top: 48px; }
   .tpl-tools .filter-row { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: 6px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
   .tpl-tools .filter-pill { flex: none; white-space: nowrap; }
 }
+
+/* ---------- Company & legal pages (about, partners, support, privacy, terms) ---------- */
+.footer-brand .footer-addr { font-size: 13px; line-height: 1.6; color: var(--ink-faint); }
+.footer-brand .footer-addr a { color: var(--ink-soft); }
+.doc-hero { padding: 80px 0 24px; }
+.doc-hero h1 { font-size: clamp(2.2rem, 4.4vw, 3.4rem); }
+.doc { max-width: 760px; }
+.section .doc { padding-top: 0; }
+.doc h2 { font-size: clamp(1.35rem, 2.4vw, 1.7rem); margin: 44px 0 14px; }
+.doc > h2:first-child, .doc > .contact-card + h2 { margin-top: 0; }
+.doc > .contact-card + h2 { margin-top: 48px; }
+.doc h3 { font-size: 17px; margin: 22px 0 8px; }
+.doc p, .doc li { color: var(--ink-soft); font-size: 16px; line-height: 1.7; }
+.doc p + p { margin-top: 12px; }
+.doc ul { margin: 10px 0 0 1.2em; padding: 0; }
+.doc li { margin-bottom: 8px; }
+.doc li strong, .doc p strong { color: var(--ink); }
+.doc a:not(.btn) { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.doc-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 36px; }
+.legal h2 { font-size: 1.25rem; }
+.partner-card, .contact-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); }
+.partner-card p { margin-top: 10px; }
+.partner-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.partner-head h3 { margin: 0; font-size: 18px; }
+.partner-meta { font-size: 14px !important; color: var(--ink-faint) !important; margin-top: 4px !important; }
+.partner-tag { flex: none; font-size: 12px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border-radius: 999px; padding: 4px 10px; }
+.contact-card { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+.contact-card h2 { margin: 0 0 6px; }
+.contact-card p { margin: 0; max-width: 420px; }
+.contact-card .btn { overflow-wrap: anywhere; }
+.faq details { border-bottom: 1px solid var(--line); padding: 4px 0; }
+.faq summary { cursor: pointer; font-weight: 700; color: var(--ink); padding: 14px 0; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; color: var(--accent); font-size: 20px; line-height: 1; }
+.faq details[open] summary::after { content: '\2212'; }
+.faq details p { padding: 0 0 16px; margin: 0; }
+.find-us { display: grid; grid-template-columns: 1fr 1.3fr; gap: 32px; align-items: start; }
+.find-us h2 { font-size: 1.6rem; }
+.find-us p { color: var(--ink-soft); margin-top: 10px; }
+.find-us-list { margin: 0; display: grid; gap: 14px; }
+.find-us-list div { display: grid; grid-template-columns: 110px 1fr; gap: 12px; }
+.find-us-list dt { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); padding-top: 2px; }
+.find-us-list dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.find-us-list a { color: var(--accent); }
+@media (max-width: 760px) {
+  .doc-hero { padding: 56px 0 8px; }
+  .find-us { grid-template-columns: 1fr; gap: 18px; }
+  .find-us-list div { grid-template-columns: 1fr; gap: 2px; }
+}
