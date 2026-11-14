@@ -18,7 +18,8 @@ app.disable('x-powered-by');
 app.get('/healthz', (req, res) => res.type('text').send('ok'));
 app.use(httpsRedirect);
 app.use(securityHeaders);
-app.use(express.json({ limit: '2mb' }));
+// rawBody keeps the exact bytes for Paystack's webhook signature check (routes/billing.js)
+app.use(express.json({ limit: '2mb', verify: (req, res, buf) => { if (req.originalUrl.startsWith('/api/billing/paystack-webhook')) req.rawBody = Buffer.from(buf); } }));
 app.use(cookieParser());
 app.use(csrfOriginCheck);
 

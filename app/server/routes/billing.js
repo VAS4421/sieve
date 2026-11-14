@@ -13,6 +13,18 @@ async function claimPayment(reference, userId, kind) {
   const r = await run('INSERT INTO used_payment_references (reference, user_id, kind) VALUES (?, ?, ?) ON CONFLICT (reference) DO NOTHING', [reference, userId, kind]);
   return r.changes === 1;
 }
+// apply a confirmed payment. claimPayment makes it safe to call from both the browser and the webhook: only one wins.
+async function applyPlan(userId, plan, reference, via = '') {
+  if (!await claimPayment(reference, userId, 'plan' + via)) return false;
+  await run("UPDATE users SET plan = ?, has_ever_paid = true, plan_expires_at = now() + interval '30 days' WHERE id = ?", [plan, userId]);
+  return true;
+}
+async function applyCredits(userId, bundle, reference, via = '') {
+  if (!await claimPayment(reference, userId, 'credits' + via)) return false;
+  await run('UPDATE users SET credit_balance = credit_balance + ?, credit_exhausted_notified_at = NULL, has_ever_paid = true WHERE id = ?', [bundle.credits, userId]);
+  await run('INSERT INTO credit_purchases (id, user_id, amount_kobo, credits_added, paystack_reference) VALUES (?, ?, ?, ?, ?)', [crypto.randomUUID(), userId, bundle.amountKobo, bundle.credits, reference]);
+  return true;
+}
 // a payment reference is a short plain string; anything else is refused before it reaches Paystack
 const refOk = (r) => typeof r === 'string' && /^[\w.=-]{1,100}$/.test(r);
 // Sieve only sells in naira (simulated payments in local dev carry no currency)
@@ -51,17 +63,13 @@ router.post('/verify', requireAuth, async (req, res) => {
     if (data.data.amount !== PLAN_PRICES_KOBO[plan] || !nairaOk(data.data)) {
       return res.status(402).json({ error: 'Amount paid does not match the selected plan.' });
     }
-    if (!await claimPayment(reference, req.user.id, 'plan')) {
+    // No recurring charge behind this: the business pays again next month; plan_expires_at detects a lapse.
+    if (!await applyPlan(req.user.id, plan, reference)) {
+      // the webhook may have applied it a moment earlier for this same account: that's still a success (only then)
+      const prior = await get('SELECT user_id, kind FROM used_payment_references WHERE reference = ?', [reference]);
+      if (prior && prior.user_id === req.user.id && prior.kind === 'plan:webhook') return res.json({ ok: true, plan, alreadyApplied: true });
       return res.status(409).json({ error: 'This payment has already been used.' });
     }
-    // No recurring charge behind this — the business is expected to come
-    // back and pay again next month. plan_expires_at is how a lapsed
-    // subscription gets detected (see billingGate and scorecards.js's
-    // create-gate) once that month is up.
-    await run(
-      "UPDATE users SET plan = ?, has_ever_paid = true, plan_expires_at = now() + interval '30 days' WHERE id = ?",
-      [plan, req.user.id]
-    );
     res.json({ ok: true, plan });
   } catch (err) {
     res.status(502).json({ error: 'Could not reach Paystack to verify this payment. Try again.' });
@@ -95,18 +103,61 @@ router.post('/credits/verify', requireAuth, async (req, res) => {
     if (data.data.amount !== bundle.amountKobo || !nairaOk(data.data)) {
       return res.status(402).json({ error: 'Amount paid does not match the selected bundle.' });
     }
-    if (!await claimPayment(reference, req.user.id, 'credits')) {
+    if (!await applyCredits(req.user.id, bundle, reference)) {
+      // the webhook may have added them a moment earlier for this same account: that's still a success
+      const prior = await get('SELECT user_id, kind FROM used_payment_references WHERE reference = ?', [reference]);
+      if (prior && prior.user_id === req.user.id && prior.kind === 'credits:webhook') {
+        const now = await get('SELECT credit_balance FROM users WHERE id = ?', [req.user.id]);
+        return res.json({ ok: true, creditsAdded: bundle.credits, creditBalance: now.credit_balance, alreadyApplied: true });
+      }
       return res.status(409).json({ error: 'This payment has already been used.' });
     }
-    await run('UPDATE users SET credit_balance = credit_balance + ?, credit_exhausted_notified_at = NULL, has_ever_paid = true WHERE id = ?', [bundle.credits, req.user.id]);
-    await run(
-      'INSERT INTO credit_purchases (id, user_id, amount_kobo, credits_added, paystack_reference) VALUES (?, ?, ?, ?, ?)',
-      [crypto.randomUUID(), req.user.id, bundle.amountKobo, bundle.credits, reference]
-    );
     const updated = await get('SELECT credit_balance FROM users WHERE id = ?', [req.user.id]);
         res.json({ ok: true, creditsAdded: bundle.credits, creditBalance: updated.credit_balance });
   } catch (err) {
     res.status(502).json({ error: 'Could not reach Paystack to verify this payment. Try again.' });
+  }
+});
+
+// --- Paystack webhook: the backup that makes sure a confirmed payment is always applied ---
+// The browser normally reports success (above). But phones close the payment window, reload the page, or lose signal,
+// so Paystack also tells us directly. We check Paystack's signature, re-check the payment with Paystack's own API,
+// find the account by the email it was paid with, then apply it. A payment is only ever applied once (claimPayment).
+// Card checks for pay-per-lead are left to the browser flow (the owner is present for that step).
+function paystackSignatureOk(raw, sig) {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret || !raw || !sig) return false;
+  const want = Buffer.from(crypto.createHmac('sha512', secret).update(raw).digest('hex')), got = Buffer.from(String(sig));
+  return want.length === got.length && crypto.timingSafeEqual(want, got);
+}
+router.post('/paystack-webhook', async (req, res) => {
+  if (!paystackSignatureOk(req.rawBody, req.headers['x-paystack-signature'])) return res.status(401).json({ error: 'Bad signature.' });
+  const ev = req.body || {};
+  if (ev.event !== 'charge.success') return res.json({ ok: true, ignored: ev.event || 'unknown' });
+  const reference = ev.data && ev.data.reference;
+  if (!refOk(reference)) return res.json({ ok: true, ignored: 'reference' });
+  try {
+    const v = await verifyTransaction(reference);
+    if (!v.status || !v.data || v.data.status !== 'success' || !nairaOk(v.data)) return res.json({ ok: true, ignored: 'not successful' });
+    const d = v.data;
+    let meta = d.metadata;
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch { meta = {}; } }
+    meta = meta || {};
+    if (meta.purpose === 'cpl-card-verify' || d.amount === CARD_VERIFY_AMOUNT_KOBO) return res.json({ ok: true, ignored: 'card check' });
+    const email = String((d.customer && d.customer.email) || '').trim().toLowerCase();
+    const user = email ? await get('SELECT id FROM users WHERE lower(email) = ?', [email]) : null;
+    if (!user) { console.warn('[billing] webhook: paid email has no Sieve account', reference); return res.json({ ok: true, ignored: 'no account' }); }
+    // what was bought: the tag the billing page sent, checked against the amount actually paid
+    const bundleKey = Object.hasOwn(CREDIT_BUNDLES, String(meta.bundleKey)) ? meta.bundleKey : Object.keys(CREDIT_BUNDLES).find((k) => CREDIT_BUNDLES[k].amountKobo === d.amount);
+    const plan = Object.hasOwn(PLAN_PRICES_KOBO, String(meta.plan)) ? meta.plan : Object.keys(PLAN_PRICES_KOBO).find((k) => PLAN_PRICES_KOBO[k] === d.amount);
+    let applied = false, what = 'nothing matched';
+    if (bundleKey && CREDIT_BUNDLES[bundleKey].amountKobo === d.amount && !meta.plan) { applied = await applyCredits(user.id, CREDIT_BUNDLES[bundleKey], reference, ':webhook'); what = 'credits:' + bundleKey; }
+    else if (plan && PLAN_PRICES_KOBO[plan] === d.amount) { applied = await applyPlan(user.id, plan, reference, ':webhook'); what = 'plan:' + plan; }
+    console.log(`[billing] webhook ${reference}: ${what} ${applied ? 'applied' : 'already applied or not applicable'}`);
+    res.json({ ok: true, applied, what });
+  } catch (err) {
+    console.error('[billing] webhook failed, Paystack will retry:', err.message || err);
+    res.status(500).json({ error: 'Try again.' });   // Paystack retries failed webhooks
   }
 });
 
