@@ -80,7 +80,7 @@ router.post('/verify', requireAuth, async (req, res) => {
 // a recurring subscription top up in one go, spend it down as leads come in) ---
 
 const CREDIT_BUNDLES = {
-  starter50: { credits: 50, amountKobo: 658900, label: '50 credits — ₦6,589' },
+  starter50: { credits: 50, amountKobo: 50000, label: '50 credits — ₦500' },   // TEMPORARY live-payment test (was 658900 / ₦6,589). Put back after the test.
   growth200: { credits: 200, amountKobo: 2177200, label: '200 credits — ₦21,772', badge: 'Most Popular' },
   scale1000: { credits: 1000, amountKobo: 8788900, label: '1,000 credits — ₦87,889', badge: 'Best Value' },
 };
