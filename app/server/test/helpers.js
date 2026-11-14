@@ -85,7 +85,8 @@ function makeClient(baseUrl) {
   async function request(method, path, body) {
     const res = await fetch(baseUrl + path, {
       method,
-      headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+      // acts like a browser page on Sieve itself: browsers always say where a request came from (see middleware/csrf.js)
+      headers: { 'Content-Type': 'application/json', Origin: baseUrl, ...(cookie ? { Cookie: cookie } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     const setCookie = res.headers.get('set-cookie');

@@ -45,8 +45,9 @@ router.post('/invite', requireAuth, rateLimit({ windowMs: 60 * 60 * 1000, max: 2
     if (!req.isOwner) return res.status(403).json({ error: 'Only the account owner can invite team members.' });
 
     const { email } = req.body || {};
-    if (!email) return res.status(400).json({ error: 'Email is required.' });
+    if (!email || typeof email !== 'string') return res.status(400).json({ error: 'Email is required.' });
     const normalizedEmail = email.toLowerCase().trim();
+    if (!require('../security').emailOk(normalizedEmail)) return res.status(400).json({ error: 'Enter a valid email address.' });
 
     if (normalizedEmail === req.user.email) {
       return res.status(400).json({ error: "That's your own login email." });

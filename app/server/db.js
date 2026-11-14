@@ -309,6 +309,17 @@ async function migrate() {
   if (moved.rowCount) console.log(`[migrate] moved ${moved.rowCount} pay-per-lead account(s) from N200 to N389 per lead`);
   // team members' sessions can be ended too (see requireAuth.js)
   await pool.query(`ALTER TABLE team_members ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0`);
+  // Every Paystack payment can be used once: plan, credits or card check. The primary key makes a second claim of the
+  // same payment fail, even if two requests race. Earlier credit purchases are recorded too, so they can't be replayed.
+  await pool.query(`CREATE TABLE IF NOT EXISTS used_payment_references (
+    reference TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await pool.query(`INSERT INTO used_payment_references (reference, user_id, kind)
+    SELECT DISTINCT ON (paystack_reference) paystack_reference, user_id, 'credits' FROM credit_purchases
+    ON CONFLICT (reference) DO NOTHING`);
 }
 
 async function close() {

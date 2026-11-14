@@ -352,7 +352,9 @@ router.post('/scorecard-nudge-starts', startLimiter, async (req, res, next) => {
 // link. Gated only by knowing the lead's own unguessable id — same model as
 // the password-reset/invite tokens elsewhere in this app; no login required
 // since leads never get an account.
-router.get('/leads/:leadId/report.pdf', async (req, res) => {
+const pdfLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 30, message: 'Too many downloads — try again shortly.' });
+router.get('/leads/:leadId/report.pdf', pdfLimiter, async (req, res) => {
+  if (!/^[0-9a-f-]{36}$/i.test(String(req.params.leadId))) return res.status(404).json({ error: 'Report not found.' });
   try {
     const lead = await get('SELECT * FROM leads WHERE id = ?', [req.params.leadId]);
     if (!lead || !lead.personalization) return res.status(404).json({ error: 'Report not found.' });

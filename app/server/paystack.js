@@ -9,9 +9,15 @@
 
 const PAYSTACK_TIMEOUT_MS = 15000;
 
+// On the live server a missing secret key must never turn into "every payment succeeded": refuse instead.
+function noKey() {
+  if (process.env.NODE_ENV === 'production') throw new Error('PAYSTACK_SECRET_KEY is not set on the live server; payments are refused.');
+}
+
 async function verifyTransaction(reference, { expectedAmountKobo } = {}) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
+    noKey();
     console.log(`[paystack] PAYSTACK_SECRET_KEY not set — simulating a successful verify for reference "${reference}".`);
     return {
       status: true,
@@ -34,6 +40,7 @@ async function verifyTransaction(reference, { expectedAmountKobo } = {}) {
 async function chargeAuthorization({ authorizationCode, email, amountKobo }) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
+    noKey();
     const ref = `sim_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
     console.log(`[paystack] PAYSTACK_SECRET_KEY not set — simulating a successful charge of ${amountKobo} kobo against ${authorizationCode}.`);
     return { status: true, simulated: true, data: { status: 'success', reference: ref, amount: amountKobo } };
@@ -58,6 +65,7 @@ async function chargeAuthorization({ authorizationCode, email, amountKobo }) {
 async function refundTransaction(reference, { amountKobo, customerNote, merchantNote } = {}) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
+    noKey();
     console.log(`[paystack] PAYSTACK_SECRET_KEY not set — simulating a queued refund for reference "${reference}".`);
     return {
       status: true,

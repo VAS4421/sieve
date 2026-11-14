@@ -5,7 +5,11 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET is not set — copy .env.example to .env and fill it in before starting the server.');
 }
 
-const COOKIE_NAME = 'sieve_session';
+// On the live site the cookie carries the __Host- prefix: browsers then only accept it over HTTPS, for this exact
+// domain and the whole site, so no other subdomain or plain-HTTP page can plant or overwrite it. Local dev runs on
+// plain http://localhost, where that prefix isn't allowed, so it keeps the old name there.
+const COOKIE_NAME = process.env.NODE_ENV === 'production' ? '__Host-sieve_session' : 'sieve_session';
+const OLD_COOKIE_NAME = 'sieve_session';
 // 24 hours, and slid forward on every authenticated request (see
 // requireAuth.js) — an active user is never logged out mid-session, but 24
 // hours with no activity at all signs them out and they have to log back in.
@@ -22,6 +26,7 @@ function cookieOptions() {
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     maxAge: COOKIE_MAX_AGE_MS,
+    path: '/',
   };
 }
 
@@ -45,6 +50,7 @@ function clearSessionCookie(res) {
   // people out in production once secure:true is in play.
   const { maxAge, ...clearOptions } = cookieOptions();
   res.clearCookie(COOKIE_NAME, clearOptions);
+  if (OLD_COOKIE_NAME !== COOKIE_NAME) res.clearCookie(OLD_COOKIE_NAME, clearOptions);   // tidy up the pre-prefix cookie
 }
 
 function readSession(req) {
@@ -57,4 +63,4 @@ function readSession(req) {
   }
 }
 
-module.exports = { signSession, setSessionCookie, clearSessionCookie, readSession };
+module.exports = { COOKIE_NAME, signSession, setSessionCookie, clearSessionCookie, readSession };

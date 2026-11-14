@@ -142,6 +142,7 @@ test('submitting the right number of answers computes a real score with personal
   });
   assert.equal(res.status, 201);
   assert.ok(res.data.leadId);
+  submittedLeadId = res.data.leadId;   // set first, so the PDF test below doesn't fail just because a copy check here did
   assert.ok(res.data.reportUrl.includes(res.data.leadId));
   assert.equal(res.data.brandName, 'Client Realty Co'); // the scorecard's own override, used for the PDF/email
 

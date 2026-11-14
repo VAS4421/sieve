@@ -38,6 +38,10 @@ async function sendEmail({ to, subject, html, attachments }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM || 'Sieve <onboarding@resend.dev>';
 
+  if (!apiKey && process.env.NODE_ENV === 'production') {
+    console.error(`[mailer] RESEND_API_KEY not set on the live server — email "${subject}" not sent.`);
+    return { skipped: true };
+  }
   if (!apiKey) {
     const links = [...html.matchAll(/href="([^"]+)"/g)].map(m => m[1]);
     const plain = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();

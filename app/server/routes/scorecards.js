@@ -46,7 +46,8 @@ const coverImageUpload = multer({
   },
 });
 
-router.post('/upload-cover', (req, res) => {
+const uploadLimiter = require('../middleware/rateLimit')({ windowMs: 60 * 60 * 1000, max: 40, message: 'Too many uploads — try again in a little while.' });
+router.post('/upload-cover', uploadLimiter, (req, res) => {
   coverImageUpload.single('cover')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'That picture is too large (3 MB at most).' : (err.message || 'Upload failed.') });
     if (!req.file) return res.status(400).json({ error: 'No file received.' });

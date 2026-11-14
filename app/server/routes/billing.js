@@ -7,6 +7,17 @@ const { sendEmail, appUrl } = require('../mailer');
 
 const router = express.Router();
 
+// A Paystack payment can only be used once, by one account: the reference is recorded the moment it's accepted
+// (primary key, so two requests racing with the same reference can't both win). Returns false if it was used before.
+async function claimPayment(reference, userId, kind) {
+  const r = await run('INSERT INTO used_payment_references (reference, user_id, kind) VALUES (?, ?, ?) ON CONFLICT (reference) DO NOTHING', [reference, userId, kind]);
+  return r.changes === 1;
+}
+// a payment reference is a short plain string; anything else is refused before it reaches Paystack
+const refOk = (r) => typeof r === 'string' && /^[\w.=-]{1,100}$/.test(r);
+// Sieve only sells in naira (simulated payments in local dev carry no currency)
+const nairaOk = (d) => !d.currency || d.currency === 'NGN';
+
 // Public config the browser needs to open the Paystack popup — the secret key
 // never leaves the server.
 router.get('/config', (req, res) => {
@@ -29,7 +40,7 @@ router.get('/plan-prices', (req, res) => {
 // secondary billing mode alongside credits and pay-per-lead below.)
 router.post('/verify', requireAuth, async (req, res) => {
   const { reference, plan } = req.body || {};
-  if (!reference || !PLAN_PRICES_KOBO[plan]) {
+  if (!refOk(reference) || !Object.hasOwn(PLAN_PRICES_KOBO, plan)) {
     return res.status(400).json({ error: 'Missing payment reference or unknown plan.' });
   }
   try {
@@ -37,8 +48,11 @@ router.post('/verify', requireAuth, async (req, res) => {
     if (!data.status || data.data.status !== 'success') {
       return res.status(402).json({ error: 'Payment was not successful.' });
     }
-    if (data.data.amount !== PLAN_PRICES_KOBO[plan]) {
+    if (data.data.amount !== PLAN_PRICES_KOBO[plan] || !nairaOk(data.data)) {
       return res.status(402).json({ error: 'Amount paid does not match the selected plan.' });
+    }
+    if (!await claimPayment(reference, req.user.id, 'plan')) {
+      return res.status(409).json({ error: 'This payment has already been used.' });
     }
     // No recurring charge behind this — the business is expected to come
     // back and pay again next month. plan_expires_at is how a lapsed
@@ -69,8 +83,8 @@ router.get('/credit-bundles', (req, res) => {
 
 router.post('/credits/verify', requireAuth, async (req, res) => {
   const { reference, bundleKey } = req.body || {};
-  const bundle = CREDIT_BUNDLES[bundleKey];
-  if (!reference || !bundle) {
+  const bundle = Object.hasOwn(CREDIT_BUNDLES, String(bundleKey)) ? CREDIT_BUNDLES[bundleKey] : null;
+  if (!refOk(reference) || !bundle) {
     return res.status(400).json({ error: 'Missing payment reference or unknown bundle.' });
   }
   try {
@@ -78,8 +92,11 @@ router.post('/credits/verify', requireAuth, async (req, res) => {
     if (!data.status || data.data.status !== 'success') {
       return res.status(402).json({ error: 'Payment was not successful.' });
     }
-    if (data.data.amount !== bundle.amountKobo) {
+    if (data.data.amount !== bundle.amountKobo || !nairaOk(data.data)) {
       return res.status(402).json({ error: 'Amount paid does not match the selected bundle.' });
+    }
+    if (!await claimPayment(reference, req.user.id, 'credits')) {
+      return res.status(409).json({ error: 'This payment has already been used.' });
     }
     await run('UPDATE users SET credit_balance = credit_balance + ?, credit_exhausted_notified_at = NULL, has_ever_paid = true WHERE id = ?', [bundle.credits, req.user.id]);
     await run(
@@ -106,7 +123,7 @@ router.get('/cpl-rate', (req, res) => {
 
 router.post('/cpl/save-card', requireAuth, async (req, res) => {
   const { reference } = req.body || {};
-  if (!reference) return res.status(400).json({ error: 'Missing payment reference.' });
+  if (!refOk(reference)) return res.status(400).json({ error: 'Missing payment reference.' });
   try {
     const data = await verifyTransaction(reference, { expectedAmountKobo: CARD_VERIFY_AMOUNT_KOBO });
     if (!data.status || data.data.status !== 'success') {
@@ -115,8 +132,11 @@ router.post('/cpl/save-card', requireAuth, async (req, res) => {
     // Matches the same check /verify and /credits/verify already do — without
     // it, any successful Paystack reference (paid for any amount, for
     // anything) would be accepted as a valid card verification.
-    if (data.data.amount !== CARD_VERIFY_AMOUNT_KOBO) {
+    if (data.data.amount !== CARD_VERIFY_AMOUNT_KOBO || !nairaOk(data.data)) {
       return res.status(402).json({ error: 'Amount charged for card verification does not match.' });
+    }
+    if (!await claimPayment(reference, req.user.id, 'card')) {
+      return res.status(409).json({ error: 'This card check has already been used.' });
     }
     const authCode = data.data.authorization && data.data.authorization.authorization_code;
     if (!authCode) {
@@ -184,7 +204,8 @@ async function usageFor(user, userId) {
   return { kind: 'monthly', used: fresh ? 0 : Number(user.monthly_responses_used) || 0, limit, resetsAt: fresh ? null : new Date(resetAt.getTime() + 30 * 86400000).toISOString() };
 }
 
-router.get('/wallet', requireAuth, async (req, res) => {
+router.get('/wallet', requireAuth, async (req, res, next) => {
+  try {
   const user = await get(
     'SELECT plan, billing_mode, credit_balance, cpl_rate_kobo, paystack_authorization_code, cpl_charge_failing, has_ever_paid, plan_expires_at, monthly_responses_used, monthly_reset_at, is_admin FROM users WHERE id = ?',
     [req.user.id]
@@ -211,6 +232,7 @@ router.get('/wallet', requireAuth, async (req, res) => {
     // admin (operator) accounts are never paused by billing (see billingGate in public.js), so the page shows no warnings
     exempt: !!user.is_admin,
   });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

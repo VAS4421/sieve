@@ -22,7 +22,7 @@ function hashToken(token) {
 router.post('/signup', authLimiter, async (req, res, next) => {
   try {
     const { businessName, email, password } = req.body || {};
-    if (!businessName || !email || !password) {
+    if (!businessName || !email || !password || typeof email !== 'string' || typeof businessName !== 'string') {
       return res.status(400).json({ error: 'Business name, email, and password are all required.' });
     }
     const pwBad = passwordProblem(password); if (pwBad) return res.status(400).json({ error: pwBad });
@@ -101,9 +101,9 @@ router.get('/me', requireAuth, (req, res) => {
 router.post('/forgot-password', authLimiter, async (req, res, next) => {
   try {
     const { email } = req.body || {};
-    if (!email) return res.status(400).json({ error: 'Email is required.' });
+    if (!email || typeof email !== 'string') return res.status(400).json({ error: 'Email is required.' });
 
-    const user = await get('SELECT id, email FROM users WHERE email = ?', [email.toLowerCase().trim()]);
+    const user = await get('SELECT id, email FROM users WHERE email = ?', [email.toLowerCase().trim().slice(0, 254)]);
     if (user) {
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour

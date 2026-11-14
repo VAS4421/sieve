@@ -37,13 +37,13 @@ test('buying a credit bundle verifies (simulated) and adds credits to the balanc
 
   const res = await client.post('/api/billing/credits/verify', { reference: 'sim-ref-1', bundleKey: 'starter50' });
   assert.equal(res.status, 200);
-  assert.equal(res.data.creditsAdded, 100);
-  assert.equal(res.data.creditBalance, 100);
+  assert.equal(res.data.creditsAdded, 50);   // starter bundle is 50 credits since the Nov 2026 pricing change
+  assert.equal(res.data.creditBalance, 50);
 
   await client.post('/api/billing/mode', { mode: 'credits' });
   const wallet = await client.get('/api/billing/wallet');
   assert.equal(wallet.data.billingMode, 'credits');
-  assert.equal(wallet.data.creditBalance, 100);
+  assert.equal(wallet.data.creditBalance, 50);
 });
 
 test('a scorecard is unavailable to new visitors once credits are exhausted, and the owner still sees leads already taken', async () => {
@@ -74,7 +74,7 @@ test('a scorecard is unavailable to new visitors once credits are exhausted, and
 
   const gated = await anon.get(`/api/public/scorecards/${slug}`);
   assert.equal(gated.status, 503);
-  assert.match(gated.data.error, /credits/i);
+  assert.match(gated.data.error, /isn't accepting responses/i);   // visitors get a neutral message, never billing details
 });
 
 test('cpl mode: saving a card (simulated) activates it, and a qualified lead fires a real-time simulated charge', async () => {

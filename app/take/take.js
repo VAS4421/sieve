@@ -47,7 +47,7 @@
     if (!res.ok) throw new Error((await res.json()).error || 'Not found');
     scorecard = await res.json();
   } catch (err) {
-    root.innerHTML = `<div class="demo-body"><p class="text-center">This scorecard isn't available. ${err.message ? '(' + err.message + ')' : ''}</p></div>`;
+    root.innerHTML = `<div class="demo-body"><p class="text-center">This scorecard isn't available. ${err.message ? '(' + escapeHtml(err.message) + ')' : ''}</p></div>`;
     return;
   }
 

@@ -14,7 +14,13 @@ function csrfOriginCheck(req, res, next) {
   if (site && !['same-origin', 'none'].includes(site)) return res.status(403).json({ error: 'Cross-site request blocked.' });
 
   const origin = req.headers.origin || req.headers.referer;
-  if (!origin) return next(); // non-browser clients (curl, server-to-server) send neither — allowed
+  if (!origin) {
+    // Non-browser clients (curl, server-to-server) send neither header and are allowed, but only without a login:
+    // every real browser labels a signed-in change with where it came from, so a logged-in request with no label is refused.
+    const { COOKIE_NAME } = require('../auth');
+    if (req.cookies && (req.cookies[COOKIE_NAME] || req.cookies.sieve_session) && !site) return res.status(403).json({ error: 'Request origin missing.' });
+    return next();
+  }
 
   let originHost;
   try {
